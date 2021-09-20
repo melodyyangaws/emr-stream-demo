@@ -1,4 +1,4 @@
-# Spark Structured Streaming Demo with MSK and EMR
+# Spark Structured Streaming Demo with EMR ON MSK
 
 This is a project developed in Python [CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html).
 It include sample data, Kafka producer simulator and a consumer example that can be run with EMR on EC2 or EMR on EKS. 
@@ -16,8 +16,8 @@ The infrastructure deployment includes the following:
     - A Cloud9 IDE as the command line environment in the demo. 
     - Kafka Client tool will be installed on the Cloud9 IDE
 - Optionally, sets up an EMR on EC2 cluster with managed scaling enabled.
-    - The cluster has 1 master and 1 core nodes running on Graviton2 (r6g.xlarge).
-    - The cluster is configured for running one Spark job at a time.
+    - The cluster has 1 master and 1 core nodes running on r5.xlarge.
+    - The cluster is configured to run one Spark job at a time.
     - The EMR cluster can scale from 1 to 10 core + task nodes
 
 ## Deploy Infrastructure
