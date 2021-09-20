@@ -13,9 +13,9 @@
 
 #!/usr/bin/env python3
 from aws_cdk.core import (App,Tags,CfnOutput,Aws, Environment)
-from lib.emr_on_ec2_stack import EMREC2Stack
-from lib.msk_stack import MSKStack
-from lib.spark_on_eks_stack import SparkOnEksStack
+from source.lib.emr_on_ec2_stack import EMREC2Stack
+from source.lib.msk_stack import MSKStack
+from source.lib.spark_on_eks_stack import SparkOnEksStack
 
 
 app = App()

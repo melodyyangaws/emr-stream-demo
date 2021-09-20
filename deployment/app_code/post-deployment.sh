@@ -25,7 +25,6 @@ chmod +x kubectl
 mkdir -p $HOME/bin && mv kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
 
 # 2. Update MSK with custom configuration
-echo "Update MSK configuration ..."
 cat <<EoF > msk-config.txt
 auto.create.topics.enable = true
 log.retention.minutes = 480
@@ -33,18 +32,19 @@ zookeeper.connection.timeout.ms = 1000
 log.roll.ms = 604800000
 EoF
 
-config=$(aws kafka create-configuration --name "autotopic" --description "Topic autocreation enabled; Apache ZooKeeper timeout 2000 ms; Log rolling 604800000 ms." --server-properties file://msk-config.txt)
-configArn=`echo $config | jq -r '.Arn'`
-configVersion=`echo $config | jq -r '.LatestRevision.Revision'`
-cat <<EoF > config-info.json
-{
-     "Arn": "$configArn",
-     "Revision": $configVersion
-}
-EoF
-msk_cluster=$(aws kafka list-clusters --region $AWS_REGION --query 'ClusterInfoList[?ClusterName==`emr-stream-demo`].ClusterArn' --output text)
-msk_version=$(aws kafka describe-cluster --cluster-arn $msk_cluster --output json | jq ".ClusterInfo.CurrentVersion")
-aws kafka update-cluster-configuration --cluster-arn $msk_cluster --configuration-info file://config-info.json --current-version $msk_version
+validate=$(aws kafka list-configurations --query 'Configurations[?Name==`autotopic`].Arn' --output text)
+if [ -z "$validate" ]
+then
+    echo "Update MSK configuration ..."
+
+    config=$(aws kafka create-configuration --name "autotopic" --description "Topic autocreation enabled; Apache ZooKeeper timeout 2000 ms; Log rolling 604800000 ms." --server-properties file://msk-config.txt)
+    configArn=`echo $config | jq -r '.Arn'`
+    configVersion=`echo $config | jq -r '.LatestRevision.Revision'`
+
+    msk_cluster=$(aws kafka list-clusters --region $AWS_REGION --query 'ClusterInfoList[?ClusterName==`emr-stream-demo`].ClusterArn' --output text)
+    msk_version=$(aws kafka describe-cluster --cluster-arn $msk_cluster --output json | jq ".ClusterInfo.CurrentVersion")
+    aws kafka update-cluster-configuration --cluster-arn $msk_cluster --configuration-info {"Arn": "$configArn","Revision": $configVersion} --current-version $msk_version
+fi
 
 # 3. install Kafka Client
 echo "Installing Kafka Client tool ..."

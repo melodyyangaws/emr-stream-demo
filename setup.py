@@ -14,7 +14,7 @@
 import setuptools
 
 try:
-    with open("../README.md") as fp:
+    with open("README.md") as fp:
         long_description = fp.read()
 except IOError as e:
     long_description = ''
@@ -29,8 +29,8 @@ setuptools.setup(
     
     author="meloyang",
 
-    package_dir={"": "./"},
-    packages=setuptools.find_packages(where="./"),
+    package_dir={"": "source"},
+    packages=setuptools.find_packages(where="source"),
 
     install_requires=[
         "aws-cdk.core==1.122.0",

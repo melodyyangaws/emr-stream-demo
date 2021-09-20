@@ -59,9 +59,10 @@ echo -e "\nIn web browser, paste the URL to launch the template: https://console
 ### CDK Deployment
 
 #### Prerequisites 
-1. [Python 3.6 or later](https://www.python.org/downloads/).
-2. [Node.js 10.3.0 or later](https://nodejs.org/en/)
-3. [AWS CLI for windows](https://docs.aws.amazon.com/cli/latest/userguide/install-windows.html#install-msi-on-windows) or [for the rest of OS](https://docs.aws.amazon.com/cli/latest/userguide/install-macos.html#install-macosos-bundled). Configure the CLI by `aws configure`.
+Install the folowing tools:
+1. [Python 3.6 +](https://www.python.org/downloads/).
+2. [Node.js 10.3.0 +](https://nodejs.org/en/)
+3. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-macos.html#install-macosos-bundled). Configure the CLI by `aws configure`.
 4. [CDK toolkit](https://cdkworkshop.com/15-prerequisites/500-toolkit.html)
 5. [One-off CDK bootstrap](https://cdkworkshop.com/20-typescript/20-create-project/500-deploy.html) for the first time deployment.
 
@@ -70,21 +71,12 @@ See the `troubleshooting` section, if you have a problem in the CDK deployment.
 #### Deploy
 ```bash
 python3 -m venv .env
-```
-For Windows, activate the virtualenv by `% .env\Scripts\activate.bat`.
-For other OS, run the followings:
-```bash
 source .env/bin/activate
-pip install -e source
+pip install -r requirements.txt
 
-cd source
 cdk deploy
 ```
-To remove the deployment from your account:
-```bash
-cd source
-cdk destroy
-```
+
 #### Troubleshooting
 
 1. If you see the issue `[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1123)`, most likely it means no default certificate authority for your Python installation on OSX. Refer to the [answer](https://stackoverflow.com/questions/52805115/0nd) installing `Install Certificates.command` should fix your local environment. Otherwise, use [Cloud9](https://aws.amazon.com/cloud9/details/) to deploy the CDK instead.

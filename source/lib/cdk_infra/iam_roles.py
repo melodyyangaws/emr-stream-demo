@@ -92,5 +92,5 @@ class IamConst(core.Construct):
         ))
         self._cloud9_role.add_to_policy(iam.PolicyStatement(
             resources=[f"arn:aws:kafka:{core.Aws.REGION}:{core.Aws.ACCOUNT_ID}:/v1/configurations"],
-            actions=["kafka:CreateConfiguration"]
+            actions=["kafka:CreateConfiguration","kafka:ListConfigurations"]
         ))
