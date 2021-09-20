@@ -85,19 +85,22 @@ cdk deploy
 
 ## Post-deployment
 
-1. Go to "Kafka Client" IDE in Cloud9 console, configure environment:
+1. Open the "Kafka Client" IDE in Cloud9 console. Create one in the 'emr-stream-demo' VPC with t3.small instance type, if the Cloud9 IDE doesn't exist. 
+2. [Attach the IAM role that contains `Cloud9Admin` to your IDE](https://www.eksworkshop.com/020_prerequisites/ec2instance/). 
+3. [Turn off AWS managed temporary credentials](https://www.eksworkshop.com/020_prerequisites/workspaceiam/)
+4. Run the script to configure the cloud9 IDE environment:
 ```bash
 curl https://raw.githubusercontent.com/melodyyangaws/emr-stream-demo/master/deployment/app_code/post-deployment.sh | bash
 ```
-3. Launching a new termnial window in Cloud9, send data to MSK:
+5. Launching a new termnial window in Cloud9, send the sample data to MSK:
 ```bash
-curl -s https://${S3BUCKET}.s3.${AWS_REGION}.amazonaws.com/app_code/data/nycTaxiRides.gz | zcat | split -l 10000 --filter="kafka_2.12-2.2.1/bin/kafka-console-producer.sh --broker-list ${MSK_SERVER} --topic taxirides; sleep 0.2" > /dev/null
+curl -s https://raw.githubusercontent.com/melodyyangaws/emr-stream-demo/master/deployment/app_code/data/nycTaxiRides.gz | zcat | split -l 10000 --filter="kafka_2.12-2.2.1/bin/kafka-console-producer.sh --broker-list ${MSK_SERVER} --topic taxirides ; sleep 0.2"  > /dev/null
 ```
-4. Launching the 3rd termnial window and monitor the source MSK queue:
+6. Launching the 3rd termnial window and monitor the source MSK queue:
 ```bash
 kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic taxirides --from-beginning
 ```
-5. Launching the 4th termnial window and monitor the target MSK queue:
+7. Launching the 4th termnial window and monitor the target MSK queue:
 ```bash
 kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic taxirides_output --from-beginning
 ```

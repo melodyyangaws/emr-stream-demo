@@ -61,11 +61,13 @@ class IamConst(core.Construct):
             iam.ManagedPolicy.from_aws_managed_policy_name('AmazonEC2ContainerRegistryReadOnly'),
             iam.ManagedPolicy.from_aws_managed_policy_name('CloudWatchAgentServerPolicy'), 
         )
-        self._managed_node_role = iam.Role(self,'NodeInstance-Role',
+        self._managed_node_role = iam.Role(self,'NodeInstanceRole',
             path='/',
             assumed_by=iam.ServicePrincipal('ec2.amazonaws.com'),
             managed_policies=list(_managed_node_managed_policies),
         )
+        self._managed_node_role.apply_removal_policy(core.RemovalPolicy.DESTROY)
+
         # EMR container service role
         self._emrsvcrole = iam.Role.from_role_arn(self, "EmrSvcRole", 
             role_arn=f"arn:aws:iam::{core.Aws.ACCOUNT_ID}:role/AWSServiceRoleForAmazonEMRContainers", 
@@ -84,7 +86,14 @@ class IamConst(core.Construct):
         ))
         self._cloud9_role.add_to_policy(iam.PolicyStatement(
             resources=["*"],
-            actions=["eks:Describe*","ssm:GetParameter","kafka:DescribeCluster","kafka:UpdateClusterConfiguration"]
+            actions=[
+                "eks:Describe*",
+                "ssm:GetParameter",
+                "kafka:DescribeCluster",
+                "kafka:UpdateClusterConfiguration",
+                "s3:List*",
+                "s3:GetObject"
+                ]
         ))
         self._cloud9_role.add_to_policy(iam.PolicyStatement(
             resources=[f"arn:aws:kafka:{core.Aws.REGION}:{core.Aws.ACCOUNT_ID}:/v1/clusters"],
@@ -94,3 +103,8 @@ class IamConst(core.Construct):
             resources=[f"arn:aws:kafka:{core.Aws.REGION}:{core.Aws.ACCOUNT_ID}:/v1/configurations"],
             actions=["kafka:CreateConfiguration","kafka:ListConfigurations"]
         ))
+        iam.CfnInstanceProfile(self,"Cloud9RoleProfile",
+            roles=[ self._cloud9_role.role_name],
+            instance_profile_name= self._cloud9_role.role_name
+        )
+        self._cloud9_role.apply_removal_policy(core.RemovalPolicy.DESTROY)
