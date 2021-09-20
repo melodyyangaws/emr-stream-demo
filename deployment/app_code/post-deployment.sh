@@ -7,23 +7,25 @@ echo "Setup AWS environment ..."
 sudo yum -y install jq java-1.8.0
 export AWS_REGION=$(curl -s 169.254.169.254/latest/dynamic/instance-identity/document | jq -r '.region')
 export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
+
+echo "export AWS_REGION=${AWS_REGION}" | tee -a ~/.bash_profile
+echo "export ACCOUNT_ID=${ACCOUNT_ID}" | tee -a ~/.bash_profile
+aws configure set default.region ${AWS_REGION}
+aws configure get default.region
+
 export S3BUCKET=$(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?OutputKey=='CODEBUCKET'].OutputValue" --output text)
 export MSK_SERVER=$(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?OutputKey=='MSKBROKER'].OutputValue" --output text)
 export VIRTUAL_CLUSTER_ID=$(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?OutputKey=='VirtualClusterId'].OutputValue" --output text)
 export SERVERLESS_VIRTUAL_CLUSTER_ID=$(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?OutputKey=='FargateVirtualClusterId'].OutputValue" --output text)
 export EMR_ROLE_ARN=$(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?OutputKey=='EMRExecRoleARN'].OutputValue" --output text)
 
-
-echo "export AWS_REGION=${AWS_REGION}" | tee -a ~/.bash_profile
-echo "export ACCOUNT_ID=${ACCOUNT_ID}" | tee -a ~/.bash_profile
 echo "export S3BUCKET=${S3BUCKET}" | tee -a ~/.bash_profile
 echo "export MSK_SERVER=${MSK_SERVER}" | tee -a ~/.bash_profile
 echo "export VIRTUAL_CLUSTER_ID=${VIRTUAL_CLUSTER_ID}" | tee -a ~/.bash_profile
 echo "export SERVERLESS_VIRTUAL_CLUSTER_ID=${SERVERLESS_VIRTUAL_CLUSTER_ID}" | tee -a ~/.bash_profile
 echo "export EMR_ROLE_ARN=${EMR_ROLE_ARN}" | tee -a ~/.bash_profile
 
-aws configure set default.region ${AWS_REGION}
-aws configure get default.region
+
 
 # 1. install k8s command tools 
 echo "Installing kubectl tool..."

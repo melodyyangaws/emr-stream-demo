@@ -92,7 +92,10 @@ class IamConst(core.Construct):
                 "kafka:DescribeCluster",
                 "kafka:UpdateClusterConfiguration",
                 "s3:List*",
-                "s3:GetObject"
+                "s3:GetObject",
+                "elasticmapreduce:ListClusters",
+                "elasticmapreduce:DescribeCluster",
+                "elasticmapreduce:AddJobFlowSteps"
                 ]
         ))
         self._cloud9_role.add_to_policy(iam.PolicyStatement(

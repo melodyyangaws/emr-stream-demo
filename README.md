@@ -92,18 +92,11 @@ curl https://raw.githubusercontent.com/melodyyangaws/emr-stream-demo/master/depl
 ```bash
 curl -s https://raw.githubusercontent.com/melodyyangaws/emr-stream-demo/master/deployment/app_code/data/nycTaxiRides.gz | zcat | split -l 10000 --filter="kafka_2.12-2.2.1/bin/kafka-console-producer.sh --broker-list ${MSK_SERVER} --topic taxirides ; sleep 0.2"  > /dev/null
 ```
-6. Launching the 3rd termnial window and monitor the source MSK queue:
+6. Launching the 3rd termnial window and monitor the source MSK topic:
 ```bash
 kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic taxirides --from-beginning
 ```
-7. Launching the 4th termnial window and monitor the target MSK queue:
-```bash
-# from EMR onm EKS
-kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic emreks_output --from-beginning
 
-# from EMR on EC2 (OPTIONAL)
-kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic emrec2_output --from-beginning
-```
 
 ## Submit job with EMR on EKS
 ```bash
@@ -116,17 +109,50 @@ aws emr-containers start-job-run \
     "sparkSubmitJobDriver":{
         "entryPoint": "s3://'$S3BUCKET'/app_code/job/msk_consumer.py","entryPointArguments":["'$MSK_SERVER'","s3://'$S3BUCKET'/stream/checkpoint/emreks","emreks_output"],"sparkSubmitParameters": "--conf spark.jars.ivy=/tmp/ivy --conf spark.jars.packages=org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --conf spark.cleaner.referenceTracking.cleanCheckpoints=true --conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=1G --conf spark.executor.cores=2"}
     }'
-```
-Verify the job is running:
-```bash
+
+# Verify the job is running in EKS
 kubectl get po -n emr
+
+# verify in EMR console
+# in Cloud9, run the consumer tool to check if any data comeing through in the target Kafka topic
+kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic emreks_output --from-beginning
+```
+## OPTIONAL: EMR on EKS with Fargate
+```bash
+aws emr-containers start-job-run \
+--virtual-cluster-id $SERVERLESS_VIRTUAL_CLUSTER_ID \
+--name msk_consumer \
+--execution-role-arn $EMR_ROLE_ARN \
+--release-label emr-5.33.0-latest \
+--job-driver '{
+    "sparkSubmitJobDriver":{
+        "entryPoint": "s3://'$S3BUCKET'/app_code/job/msk_consumer.py","entryPointArguments":["'$MSK_SERVER'","s3://'$S3BUCKET'/stream/checkpoint/emreksfg","emreksfg_output"],"sparkSubmitParameters": "--packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --conf spark.cleaner.referenceTracking.cleanCheckpoints=true --conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=1G --conf spark.executor.cores=2"}
+    }'
+
+# Verify the job is running in EKS Fargate
+kubectl get po -n emrserverless
+
+# verify in EMR console
+# in Cloud9, run the consumer tool to check if any data comeing through in the target Kafka topic
+kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic emreksfg_output --from-beginning
 ```
 
 ## OPTIONAL: Submit EMR step
 
+```bash
+cluster_id=$(aws emr list-clusters --cluster-states WAITING --query 'Clusters[?Name==`emr-stream-demo`].Id' --output text)
+aws emr add-steps \
+--cluster-id $cluster_id \
+--steps Type=spark,Name=emrec2_stream,Args=[--deploy-mode,cluster,--conf,spark.cleaner.referenceTracking.cleanCheckpoints=true,--conf,spark.executor.instances=2,--conf,spark.executor.memory=2G,--conf,spark.driver.memory=2G,--conf,spark.executor.cores=2,--packages,org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.1,s3://$S3BUCKET/app_code/job/msk_consumer.py,"$MSK_SERVER",s3://$S3BUCKET/stream/checkpoint/emrec2,emrec2_output],ActionOnFailure=CONTINUE  
 
 
-[*^ back to top*](#Table-of-Contents)
+# verify in EMR console
+# in Cloud9, run the consumer tool to check if any data comeing through in the target Kafka topic
+```bash
+kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic emrec2_output --from-beginning
+```
+
+
 ## Useful commands
 
  * `kubectl get pod -n emr`               list running Spark jobs
@@ -134,11 +160,10 @@ kubectl get po -n emr
  * `kubectl logs <pod name> -n emr`       check logs against a pod in the emr namespace
  * `kubectl get node --label-columns=eks.amazonaws.com/capacityType,topology.kubernetes.io/zone` check EKS compute capacity types and AZ distribution.
 
-[*^ back to top*](#Table-of-Contents)
+
 ## Clean up
-Run the clean-up script with your CloudFormation stack name EMROnEKS. If you see the error "(ResourceInUse) when calling the DeleteTargetGroup operation", simply run the script again.
+Run the clean-up script with:
 ```bash
-cd emr-stream-demo
-./deployment/delete_all.sh
+curl https://raw.githubusercontent.com/melodyyangaws/emr-stream-demo/master/deployment/app_code/delete_all.sh | bash
 ```
 Go to the [CloudFormation console](https://console.aws.amazon.com/cloudformation/home?region=us-east-1), manually delete the remaining resources if needed.
