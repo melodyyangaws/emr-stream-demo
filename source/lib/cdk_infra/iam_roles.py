@@ -103,6 +103,10 @@ class IamConst(core.Construct):
             resources=[f"arn:aws:kafka:{core.Aws.REGION}:{core.Aws.ACCOUNT_ID}:/v1/configurations"],
             actions=["kafka:CreateConfiguration","kafka:ListConfigurations"]
         ))
+        self._cloud9_role.add_to_policy(iam.PolicyStatement(
+            resources=[f"arn:aws:emr-containers:{core.Aws.REGION}:{core.Aws.ACCOUNT_ID}:/virtualclusters/*"],
+            actions=["emr-containers:StartJobRun"]
+        ))
         iam.CfnInstanceProfile(self,"Cloud9RoleProfile",
             roles=[ self._cloud9_role.role_name],
             instance_profile_name= self._cloud9_role.role_name

@@ -9,11 +9,18 @@ export AWS_REGION=$(curl -s 169.254.169.254/latest/dynamic/instance-identity/doc
 export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
 export S3BUCKET=$(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?OutputKey=='CODEBUCKET'].OutputValue" --output text)
 export MSK_SERVER=$(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?OutputKey=='MSKBROKER'].OutputValue" --output text)
+export VIRTUAL_CLUSTER_ID=$(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?OutputKey=='VirtualClusterId'].OutputValue" --output text)
+export SERVERLESS_VIRTUAL_CLUSTER_ID=$(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?OutputKey=='FargateVirtualClusterId'].OutputValue" --output text)
+export EMR_ROLE_ARN=$(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?OutputKey=='EMRExecRoleARN'].OutputValue" --output text)
+
 
 echo "export AWS_REGION=${AWS_REGION}" | tee -a ~/.bash_profile
 echo "export ACCOUNT_ID=${ACCOUNT_ID}" | tee -a ~/.bash_profile
 echo "export S3BUCKET=${S3BUCKET}" | tee -a ~/.bash_profile
 echo "export MSK_SERVER=${MSK_SERVER}" | tee -a ~/.bash_profile
+echo "export VIRTUAL_CLUSTER_ID=${VIRTUAL_CLUSTER_ID}" | tee -a ~/.bash_profile
+echo "export SERVERLESS_VIRTUAL_CLUSTER_ID=${SERVERLESS_VIRTUAL_CLUSTER_ID}" | tee -a ~/.bash_profile
+echo "export EMR_ROLE_ARN=${EMR_ROLE_ARN}" | tee -a ~/.bash_profile
 
 aws configure set default.region ${AWS_REGION}
 aws configure get default.region
@@ -40,7 +47,7 @@ then
     configArn=$(aws kafka create-configuration --name "autotopic" --description "Topic autocreation enabled; Log retention 8h; Apache ZooKeeper timeout 2000 ms; Log rolling 15120000 ms." --server-properties file://msk-config.txt | jq -r '.Arn')
     msk_cluster=$(aws kafka list-clusters --region $AWS_REGION --query 'ClusterInfoList[?ClusterName==`emr-stream-demo`].ClusterArn' --output text)
     msk_version=$(aws kafka describe-cluster --cluster-arn ${msk_cluster} --query "ClusterInfo.CurrentVersion" --output text)
-    aws kafka update-cluster-configuration --cluster-arn ${msk_cluster} --configuration-info '{"Arn": "'+${configArn}+'","Revision": 1 }' --current-version ${msk_version}
+    aws kafka update-cluster-configuration --cluster-arn ${msk_cluster} --configuration-info '{"Arn": "'$configArn'","Revision": 1 }' --current-version ${msk_version}
 fi
 
 # 3. install Kafka Client
@@ -53,8 +60,4 @@ rm kafka_2.12-2.2.1.tgz
 echo `aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?starts_with(OutputKey,'eksclusterEKSConfig')].OutputValue" --output text` | bash
 echo "Testing EKS connection..."
 kubectl get svc
-
-# #4. download sample data
-# aws s3 cp s3://${S3BUCKET}/app_code/data/nycTaxiRides.gz .   
-# chmod 744 nycTaxiRides.gz 
 

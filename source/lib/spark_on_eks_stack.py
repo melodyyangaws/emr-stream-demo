@@ -30,10 +30,6 @@ class SparkOnEksStack(core.Stack):
     @property
     def eksvpc(self):
         return self.network_sg.vpc
-
-    # @property
-    # def eks_cluster(self):
-    #     return self.eks_cluster.my_cluster
        
 
     @property

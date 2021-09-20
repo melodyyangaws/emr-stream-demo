@@ -66,8 +66,6 @@ Install the folowing tools:
 4. [CDK toolkit](https://cdkworkshop.com/15-prerequisites/500-toolkit.html)
 5. [One-off CDK bootstrap](https://cdkworkshop.com/20-typescript/20-create-project/500-deploy.html) for the first time deployment.
 
-See the `troubleshooting` section, if you have a problem in the CDK deployment.
-
 #### Deploy
 ```bash
 python3 -m venv .env
@@ -77,15 +75,13 @@ pip install -r requirements.txt
 cdk deploy
 ```
 
-#### Troubleshooting
-
-1. If you see the issue `[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1123)`, most likely it means no default certificate authority for your Python installation on OSX. Refer to the [answer](https://stackoverflow.com/questions/52805115/0nd) installing `Install Certificates.command` should fix your local environment. Otherwise, use [Cloud9](https://aws.amazon.com/cloud9/details/) to deploy the CDK instead.
-
-2. If an error appears during the CDK deployment: `Failed to create resource. IAM role’s policy must include the "ec2:DescribeVpcs" action`. The possible causes are: 1) you have reach the quota limits of Amazon VPC resources per Region in your AWS account. Please deploy to a different region or a different account. 2) based on this [CDK issue](https://github.com/aws/aws-cdk/issues/9027), you can retry without any changes, it will work. 3) If you are in a branch new AWS account, manually delete the AWSServiceRoleForAmazonEKS from IAM role console before the deployment. 
-
 ## Post-deployment
 
-1. Open the "Kafka Client" IDE in Cloud9 console. Create one in the 'emr-stream-demo' VPC with t3.small instance type, if the Cloud9 IDE doesn't exist. 
+1. Open the "Kafka Client" IDE in Cloud9 console. Create one if the Cloud9 IDE doesn't exist. 
+```
+VPC prefix: 'emr-stream-demo'
+Instance Type: 't3.small'
+```
 2. [Attach the IAM role that contains `Cloud9Admin` to your IDE](https://www.eksworkshop.com/020_prerequisites/ec2instance/). 
 3. [Turn off AWS managed temporary credentials](https://www.eksworkshop.com/020_prerequisites/workspaceiam/)
 4. Run the script to configure the cloud9 IDE environment:
@@ -102,10 +98,29 @@ kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} 
 ```
 7. Launching the 4th termnial window and monitor the target MSK queue:
 ```bash
-kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic taxirides_output --from-beginning
+# from EMR onm EKS
+kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic emreks_output --from-beginning
+
+# from EMR on EC2 (OPTIONAL)
+kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic emrec2_output --from-beginning
 ```
 
 ## Submit job with EMR on EKS
+```bash
+aws emr-containers start-job-run \
+--virtual-cluster-id $VIRTUAL_CLUSTER_ID \
+--name msk_consumer \
+--execution-role-arn $EMR_ROLE_ARN \
+--release-label emr-5.33.0-latest \
+--job-driver '{
+    "sparkSubmitJobDriver":{
+        "entryPoint": "s3://'$S3BUCKET'/app_code/job/msk_consumer.py","entryPointArguments":["'$MSK_SERVER'","s3://'$S3BUCKET'/stream/checkpoint/emreks","emreks_output"],"sparkSubmitParameters": "--conf spark.jars.ivy=/tmp/ivy --conf spark.jars.packages=org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --conf spark.cleaner.referenceTracking.cleanCheckpoints=true --conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=1G --conf spark.executor.cores=2"}
+    }'
+```
+Verify the job is running:
+```bash
+kubectl get po -n emr
+```
 
 ## OPTIONAL: Submit EMR step
 

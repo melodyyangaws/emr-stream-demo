@@ -33,7 +33,7 @@ class SparkOnEksConst(core.Construct):
 
     @property
     def EMRExecRole(self):
-        return self._emr_exec_role.role_name 
+        return self._emr_exec_role.role_arn 
 
     def __init__(self,scope: core.Construct, id: str, 
         eks_cluster: ICluster, 
