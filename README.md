@@ -1,7 +1,7 @@
 # Spark Structured Streaming Demo with EMR ON MSK
 
 This is a project developed in Python [CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html).
-It include sample data, Kafka producer simulator and a consumer example that can be run with EMR on EC2 or EMR on EKS. 
+It includes sample data, Kafka producer simulator and a consumer example that can be run with EMR on EC2 or EMR on EKS. 
 
 The infrastructure deployment includes the following:
 - A new S3 bucket to store sample data and stream job code
@@ -109,8 +109,10 @@ aws emr-containers start-job-run \
 --release-label emr-5.33.0-latest \
 --job-driver '{
     "sparkSubmitJobDriver":{
-        "entryPoint": "s3://'$S3BUCKET'/app_code/job/msk_consumer.py","entryPointArguments":["'$MSK_SERVER'","s3://'$S3BUCKET'/stream/checkpoint/emreks","emreks_output"],"sparkSubmitParameters": "--conf spark.jars.ivy=/tmp/ivy --conf spark.jars.packages=org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --conf spark.cleaner.referenceTracking.cleanCheckpoints=true --conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=1G --conf spark.executor.cores=2"}
-    }'
+        "entryPoint": "s3://'$S3BUCKET'/app_code/job/msk_consumer.py","entryPointArguments":["'$MSK_SERVER'","s3://'$S3BUCKET'/stream/checkpoint/emreks","emreks_output"],"sparkSubmitParameters": "--conf spark.jars.packages=org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --conf spark.cleaner.referenceTracking.cleanCheckpoints=true --conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=1G --conf spark.executor.cores=2"}}' \
+--configuration-overrides '{
+    "monitoringConfiguration": {
+        "s3MonitoringConfiguration": {"logUri": "'${S3BUCKET}'/elasticmapreduce/emreks-log/"}}}'  
 
 # Verify the job is running in EKS
 kubectl get po -n emr
@@ -119,30 +121,45 @@ kubectl get po -n emr
 # in Cloud9, run the consumer tool to check if any data comeing through in the target Kafka topic
 kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic emreks_output --from-beginning
 ```
-## OPTIONAL: EMR on EKS with Fargate
+## EMR on EKS with Fargate
+We will submit the job to the same namespace `emr` as above. 
+
+To ensure it is picked up by Fargate not by the managed nodegroup on EC2, tag the Spark application by a label that has setup in a Fargate profile earlier:
+```yaml
+--conf spark.kubernetes.driver.label.type=etl-serverless
+--conf spark.kubernetes.executor.label.type=etl-serverless
+```
+
+Run the script to submit the job to Fargate:
+
 ```bash
 aws emr-containers start-job-run \
---virtual-cluster-id $SERVERLESS_VIRTUAL_CLUSTER_ID \
---name msk_consumer \
+--virtual-cluster-id $VIRTUAL_CLUSTER_ID \
+--name msk_consumer_fg \
 --execution-role-arn $EMR_ROLE_ARN \
 --release-label emr-5.33.0-latest \
 --job-driver '{
     "sparkSubmitJobDriver":{
-        "entryPoint": "s3://'$S3BUCKET'/app_code/job/msk_consumer.py","entryPointArguments":["'$MSK_SERVER'","s3://'$S3BUCKET'/stream/checkpoint/emreksfg","emreksfg_output"],"sparkSubmitParameters": "--packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --conf spark.cleaner.referenceTracking.cleanCheckpoints=true --conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=1G --conf spark.executor.cores=2"}
-    }'
+        "entryPoint": "s3://'$S3BUCKET'/app_code/job/msk_consumer.py","entryPointArguments":["'$MSK_SERVER'","s3://'$S3BUCKET'/stream/checkpoint/emreksfg","emreksfg_output"],"sparkSubmitParameters": "--packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --conf spark.cleaner.referenceTracking.cleanCheckpoints=true --conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=1G --conf spark.executor.cores=2 --conf spark.kubernetes.driver.label.type=etl-serverless --conf spark.kubernetes.executor.label.type=etl-serverless"}}' \
+--configuration-overrides '{
+    "monitoringConfiguration": {
+        "s3MonitoringConfiguration": {"logUri": "'${S3BUCKET}'/elasticmapreduce/emreksfg-log/"}}}'        
+
 
 # Verify the job is running in EKS Fargate
-kubectl get po -n emrserverless
+kubectl get po -n emr
 
 # verify in EMR console
 # in Cloud9, run the consumer tool to check if any data comeing through in the target Kafka topic
 kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic emreksfg_output --from-beginning
 ```
 
-## OPTIONAL: Submit EMR step
+## OPTIONAL: Submit step to EMR on EC2
 
 ```bash
 cluster_id=$(aws emr list-clusters --cluster-states WAITING --query 'Clusters[?Name==`emr-stream-demo`].Id' --output text)
+MSK_SERVER=$(echo $MSK_SERVER| cut -d',' -f 2) 
+
 aws emr add-steps \
 --cluster-id $cluster_id \
 --steps Type=spark,Name=emrec2_stream,Args=[--deploy-mode,cluster,--conf,spark.cleaner.referenceTracking.cleanCheckpoints=true,--conf,spark.executor.instances=2,--conf,spark.executor.memory=2G,--conf,spark.driver.memory=2G,--conf,spark.executor.cores=2,--packages,org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.1,s3://$S3BUCKET/app_code/job/msk_consumer.py,"$MSK_SERVER",s3://$S3BUCKET/stream/checkpoint/emrec2,emrec2_output],ActionOnFailure=CONTINUE  

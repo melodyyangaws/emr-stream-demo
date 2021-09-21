@@ -28,7 +28,15 @@ class EksConst(core.Construct):
     def awsAuth(self):
         return self._my_cluster.aws_auth       
 
-    def __init__(self, scope: core.Construct, id:str, eksname: str, eksvpc: ec2.IVpc, noderole: IRole, eks_adminrole: IRole, emr_svc_role: IRole, **kwargs) -> None:
+    def __init__(self, scope: core.Construct, id:str, 
+        eksname: str, 
+        eksvpc: ec2.IVpc, 
+        noderole: IRole, 
+        eks_adminrole: IRole, 
+        emr_svc_role: IRole, 
+        fg_pod_role: IRole, 
+        **kwargs
+    ) -> None:
         super().__init__(scope, id, **kwargs)
 
         # 1.Create EKS cluster without node group
@@ -73,15 +81,16 @@ class EksConst(core.Construct):
         # 4. Add Fargate NodeGroup to EKS, without setup cluster-autoscaler
         self._my_cluster.add_fargate_profile('FargateEnabled',
             selectors =[{
-                "namespace": "emrserverless"
+                "namespace": "emr",
+                "labels": {"type":"etl-serverless"}
             }],
-            fargate_profile_name='serverlessETL'
+            pod_execution_role=fg_pod_role
         )
         
         # 5. Map EMR user to IAM role
         self._my_cluster.aws_auth.add_role_mapping(emr_svc_role, groups=[], username="emr-containers")
 
-        # 6. Allow TCP from Cloud9      
+        # # 6. Allow EKS access from Cloud9      
         self._my_cluster.cluster_security_group.add_ingress_rule(ec2.Peer.ipv4(eksvpc.vpc_cidr_block),ec2.Port.all_tcp())
 
         
