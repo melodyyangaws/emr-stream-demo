@@ -83,7 +83,9 @@ VPC prefix: 'emr-stream-demo'
 Instance Type: 't3.small'
 ```
 2. [Attach the IAM role that contains `Cloud9Admin` to your IDE](https://www.eksworkshop.com/020_prerequisites/ec2instance/). 
+
 3. [Turn off AWS managed temporary credentials](https://www.eksworkshop.com/020_prerequisites/workspaceiam/)
+
 4. Run the script to configure the cloud9 IDE environment:
 ```bash
 curl https://raw.githubusercontent.com/melodyyangaws/emr-stream-demo/master/deployment/app_code/post-deployment.sh | bash

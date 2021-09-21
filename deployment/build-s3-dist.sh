@@ -42,7 +42,6 @@ staging_dist_dir="$template_dir/staging"
 app_code_dir="$template_dir/deployment/app_code"
 template_dist_dir="$template_dir/deployment/global-s3-assets"
 build_dist_dir="$template_dir/deployment/regional-s3-assets"
-source_dir="$template_dir/source"
 
 echo "------------------------------------------------------------------------------"
 echo "[Init] Remove any old dist files from previous runs"
@@ -68,22 +67,22 @@ echo "--------------------------------------------------------------------------
 echo "cd $template_dir/deployment/cdk-solution-helper"
 cd $template_dir/deployment/cdk-solution-helper
 echo "npm install"
+npm audit fix --force
 npm install
 
 cd $template_dir
-echo "pip3 install -q $source_dir"
+echo "pip3 install -r requirements.txt"
 python3 -m venv .env
 source .env/bin/activate
-pip3 install --upgrade pip -q $source_dir
+pip3 install --upgrade pip -r requirements.txt
 
 echo "------------------------------------------------------------------------------"
 echo "[Synth] CDK Project"
 echo "------------------------------------------------------------------------------"
 
-cd $source_dir
-
 # # Install the global aws-cdk package
 echo "npm install -g aws-cdk@$cdk_version"
+npm audit fix --force
 npm install aws-cdk@$cdk_version
 
 # Run 'cdk synth' to generate raw solution outputs
@@ -178,7 +177,7 @@ for d in `find . -mindepth 1 -maxdepth 1 -type d`; do
         echo "Initiating virtual environment"
         python3 -m venv $venv_folder
         source $venv_folder/bin/activate
-        pip3 install --upgrade -q $source_dir --target $venv_folder/lib/python3.*/site-packages
+        pip3 install --upgrade -q $template_dir --target $venv_folder/lib/python3.*/site-packages
         echo "package python artifact"
         cd $staging_dist_dir/$fname/$venv_folder/lib/python3.*/site-packages
         zip -qr9 $staging_dist_dir/$fname.zip .
@@ -192,7 +191,8 @@ for d in `find . -mindepth 1 -maxdepth 1 -type d`; do
         echo "This is Node runtime"
         echo "===================================="
         echo "Clean and rebuild artifacts"
-        npm run clean
+        npm audit fix --force
+        npm run
         npm ci
         if [ "$?" = "1" ]; then
 	        echo "ERROR: Seems like package-lock.json does not exists or is out of sync with package.josn. Trying npm install instead" 1>&2
