@@ -1,13 +1,15 @@
 #!/bin/bash
 
-export stack_name="${1:-EMROnEKS}"
+export stack_name="${1:-StreamOnEKS}"
 
 # delete EMR virtual cluster if needed
 emr_cv=$(aws emr-containers list-virtual-clusters --state ARRESTED --query 'virtualClusters[*].id' --output text)
 if [ ! -z "$emr_cv" ] 
 then
     for i in emr_cv
-         aws emr-containers delete-virtual-cluster --id $i 
+    do
+        aws emr-containers delete-virtual-cluster --id $i
+    done    
 fi
 
 # delete S3

@@ -54,23 +54,7 @@ class MSKStack(core.NestedStack):
             sg_msk.add_ingress_rule(ec2.Peer.ipv4(subnet.ipv4_cidr_block), ec2.Port.tcp(9094), "Zookeeper Plaintext")
         for subnet in eksvpc.private_subnets:
             sg_msk.add_ingress_rule(ec2.Peer.ipv4(subnet.ipv4_cidr_block), ec2.Port.all_traffic(), "All private traffic")
-        # # create broker node
-        # bngi = CfnCluster.broker_node_group_info=CfnCluster.BrokerNodeGroupInfoProperty(
-        #         client_subnets=eksvpc.select_subnets(subnet_type=ec2.SubnetType.PUBLIC).subnet_ids,
-        #         security_groups=[sg_msk.security_group_id],
-        #         instance_type="kafka.m5.large",
-        #         storage_info= CfnCluster.StorageInfoProperty(
-        #             ebs_storage_info=CfnCluster.EBSStorageInfoProperty(volume_size=100)),
-        # )
-        # create MSK cluster
-        # self._msk_cluster = CfnCluster(self, "EMR-EKS-stream",
-        #     cluster_name="EMR-EKS-demo",
-        #     kafka_version="2.6.1",
-        #     broker_node_group_info=bngi,
-        #     number_of_broker_nodes=2,
-        #     encryption_info=CfnCluster.EncryptionInfoProperty(encryption_in_transit=transit_encryption),
-        #     tags =core.CfnTag(key="project", value="emr-stream-demo")
-        # )
+   
         self._msk_cluster = msk.Cluster(self, "EMR-EKS-stream",
             cluster_name=cluster_name,
             kafka_version=msk.KafkaVersion.V2_6_1,
@@ -85,8 +69,3 @@ class MSKStack(core.NestedStack):
             security_groups=[sg_msk],
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC,one_per_az=True)
         )
- 
-        # self._msk_cluster.connections.allow_from(self._c9env.connections ,ec2.Port.all_tcp)
-        # self._msk_cluster.connections.allow_from(eks_connect, ec2.Port.all_tcp)
-        # self._msk_cluster.connections.allow_from(emr_master_sg, ec2.Port.all_tcp)
-        # self._msk_cluster.connections.allow_from(emr_slave_sg,ec2.Port.all_tcp)

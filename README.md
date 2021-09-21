@@ -112,7 +112,7 @@ aws emr-containers start-job-run \
         "entryPoint": "s3://'$S3BUCKET'/app_code/job/msk_consumer.py","entryPointArguments":["'$MSK_SERVER'","s3://'$S3BUCKET'/stream/checkpoint/emreks","emreks_output"],"sparkSubmitParameters": "--conf spark.jars.packages=org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --conf spark.cleaner.referenceTracking.cleanCheckpoints=true --conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=1G --conf spark.executor.cores=2"}}' \
 --configuration-overrides '{
     "monitoringConfiguration": {
-        "s3MonitoringConfiguration": {"logUri": "'${S3BUCKET}'/elasticmapreduce/emreks-log/"}}}'  
+        "s3MonitoringConfiguration": {"logUri": "s3://'${S3BUCKET}'/elasticmapreduce/emreks-log/"}}}'  
 
 # Verify the job is running in EKS
 kubectl get po -n emr
@@ -126,8 +126,8 @@ We will submit the job to the same namespace `emr` as above.
 
 To ensure it is picked up by Fargate not by the managed nodegroup on EC2, tag the Spark application by a label that has setup in a Fargate profile earlier:
 ```yaml
---conf spark.kubernetes.driver.label.type=etl-serverless
---conf spark.kubernetes.executor.label.type=etl-serverless
+--conf spark.kubernetes.driver.label.type=serverless
+--conf spark.kubernetes.executor.label.type=serverless
 ```
 
 Run the script to submit the job to Fargate:
@@ -140,10 +140,10 @@ aws emr-containers start-job-run \
 --release-label emr-5.33.0-latest \
 --job-driver '{
     "sparkSubmitJobDriver":{
-        "entryPoint": "s3://'$S3BUCKET'/app_code/job/msk_consumer.py","entryPointArguments":["'$MSK_SERVER'","s3://'$S3BUCKET'/stream/checkpoint/emreksfg","emreksfg_output"],"sparkSubmitParameters": "--packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --conf spark.cleaner.referenceTracking.cleanCheckpoints=true --conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=1G --conf spark.executor.cores=2 --conf spark.kubernetes.driver.label.type=etl-serverless --conf spark.kubernetes.executor.label.type=etl-serverless"}}' \
+        "entryPoint": "s3://'$S3BUCKET'/app_code/job/msk_consumer.py","entryPointArguments":["'$MSK_SERVER'","s3://'$S3BUCKET'/stream/checkpoint/emreksfg","emreksfg_output"],"sparkSubmitParameters": "--conf spark.jars.packages=org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.7 --conf spark.cleaner.referenceTracking.cleanCheckpoints=true --conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=1G --conf spark.executor.cores=2 --conf spark.kubernetes.driver.label.type=serverless --conf spark.kubernetes.executor.label.type=serverless"}}' \
 --configuration-overrides '{
     "monitoringConfiguration": {
-        "s3MonitoringConfiguration": {"logUri": "'${S3BUCKET}'/elasticmapreduce/emreksfg-log/"}}}'        
+        "s3MonitoringConfiguration": {"logUri": "s3://'${S3BUCKET}'/elasticmapreduce/emreksfg-log/"}}}'        
 
 
 # Verify the job is running in EKS Fargate

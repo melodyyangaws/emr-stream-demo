@@ -82,7 +82,7 @@ class EksConst(core.Construct):
         self._my_cluster.add_fargate_profile('FargateEnabled',
             selectors =[{
                 "namespace": "emr",
-                "labels": {"type":"etl-serverless"}
+                "labels": {"type":"serverless"}
             }],
             pod_execution_role=fg_pod_role
         )
