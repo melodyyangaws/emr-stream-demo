@@ -36,9 +36,9 @@ mkdir -p $HOME/bin && mv kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bi
 # 2. Update MSK with custom configuration
 cat <<EoF > msk-config.txt
 auto.create.topics.enable=true
-log.retention.minutes=480
+log.retention.minutes=1440
 zookeeper.connection.timeout.ms=1000
-log.roll.ms=15120000
+log.roll.ms=60480000
 EoF
 
 validate=$(aws kafka list-configurations --query 'Configurations[?Name==`autotopic`].Arn' --output text)
@@ -46,7 +46,7 @@ if [ -z "$validate" ]
 then
     echo "Update MSK configuration ..."
 
-    configArn=$(aws kafka create-configuration --name "autotopic" --description "Topic autocreation enabled; Log retention 8h; Apache ZooKeeper timeout 2000 ms; Log rolling 15120000 ms." --server-properties file://msk-config.txt | jq -r '.Arn')
+    configArn=$(aws kafka create-configuration --name "autotopic" --description "Topic autocreation enabled; Log retention 24h; Apache ZooKeeper timeout 1000 ms; Log rolling 16h." --server-properties file://msk-config.txt | jq -r '.Arn')
     msk_cluster=$(aws kafka list-clusters --region $AWS_REGION --query 'ClusterInfoList[?ClusterName==`emr-stream-demo`].ClusterArn' --output text)
     msk_version=$(aws kafka describe-cluster --cluster-arn ${msk_cluster} --query "ClusterInfo.CurrentVersion" --output text)
     aws kafka update-cluster-configuration --cluster-arn ${msk_cluster} --configuration-info '{"Arn": "'$configArn'","Revision": 1 }' --current-version ${msk_version}

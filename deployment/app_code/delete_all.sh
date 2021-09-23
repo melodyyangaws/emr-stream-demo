@@ -14,9 +14,12 @@ fi
 
 # delete S3
 S3BUCKET=$(aws cloudformation describe-stacks --stack-name StreamOnEKS --query "Stacks[0].Outputs[?OutputKey=='CODEBUCKET'].OutputValue" --output text)
-echo "Delete EMR log from S3"
-aws s3 rm s3://$S3BUCKET --recursive
-aws s3 rb s3://$S3BUCKET --force
+if [ ! "$S3BUCKET" == 'None' ] 
+then
+    echo "Delete EMR log from S3"
+    aws s3 rm s3://$S3BUCKET --recursive
+    aws s3 rb s3://$S3BUCKET --force
+fi
 
 # delete the rest from CF
 echo "Delete the rest of resources by CloudFormation delete command"
