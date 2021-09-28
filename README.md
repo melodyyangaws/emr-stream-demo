@@ -1,4 +1,4 @@
-# Spark Structured Streaming Demo with EMR ON MSK
+# Spark Structured Streaming Demo with EMR on EKS
 
 This is a project developed in Python [CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html).
 It includes sample data, Kafka producer simulator and a consumer example that can be run with EMR on EC2 or EMR on EKS. 
@@ -7,11 +7,11 @@ The infrastructure deployment includes the following:
 - A new S3 bucket to store sample data and stream job code
 - An EKS cluster in a new VPC across 2 AZs
     - The Cluster has 2 default managed node groups: the OnDemand nodegroup scales from 1 to 5, SPOT instance nodegroup can scale from 1 to 30. 
-    - It also has a Fargate profile set to use the `emrserverless` namespace
-- Two EMR virtual clusters in the same VPC
-    - The first virtual cluster uses the `emr` namespace on managed node groups
-    - The second virtual cluster uses the `emrserverless` namespace on a Fargate profile
-    - All EMR on EKS configuration is done, including a cluster role bound to an IAM role
+    - It also has a Fargate profile labelled with the value `serverless`
+- An EMR virtual cluster in the same VPC
+    - The virtual cluster links to `emr` namespace 
+    - The namespace accommodates two types of Spark jobs, ie. run on managed node group or serverless job on Fargate
+    - All EMR on EKS configuration are done, including fine-grained access controls for pods by the AWS native solution IAM roles for service accounts
 - A MSK Cluster in the same VPC with 2 brokers in total. Kafka version is 2.6.1.
     - A Cloud9 IDE as the command line environment in the demo. 
     - Kafka Client tool will be installed on the Cloud9 IDE
