@@ -1,5 +1,3 @@
-image:
-  tag: v2.2.0
 region: {{region_name}}
 vpcId: {{vpc_id}}
 clusterName: {{cluster_name}}
