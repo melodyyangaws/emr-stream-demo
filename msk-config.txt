@@ -1,4 +1,0 @@
-auto.create.topics.enable=true
-log.retention.minutes=1440
-zookeeper.connection.timeout.ms=1000
-log.roll.ms=60480000
