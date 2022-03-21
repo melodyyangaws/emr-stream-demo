@@ -32,5 +32,12 @@
     - logs:DescribeLogStreams
     Resource:
     - arn:aws:logs:*:*:*
-
-
+  - Effect: Allow
+    Action:
+    - kinesis:CreateStream
+    - kinesis:PutRecord
+    - kinesis:List*
+    - kinesis:Get*
+    - kinesis:DeleteStream
+    Resource:
+      - '*'     
