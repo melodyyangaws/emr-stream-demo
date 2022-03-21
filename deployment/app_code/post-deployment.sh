@@ -4,8 +4,8 @@ export stack_name="${1:-StreamOnEKS}"
 
 # 0. Setup AWS environment
 echo "Setup AWS environment ..."
-sudo yum -y install jq java-1.8.0
-export AWS_REGION=$(curl -s 169.254.169.254/latest/dynamic/instance-identity/document | jq -r '.region')
+sudo yum -y install jq
+export AWS_REGION=$(aws configure list | grep region | awk '{print $2}')
 export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
 
 echo "export AWS_REGION=${AWS_REGION}" | tee -a ~/.bash_profile

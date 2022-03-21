@@ -37,7 +37,7 @@ Two ways to deploy:
 * To launch in a different AWS Region, check out the following customization section, or use the CDK deployment option.
 
 ### Customization
-You can customize the solution, such as remove the nested stack of EMR cluster setup, then generate the CFN tmeplates in your region: 
+You can customize the solution, such as set to a different region, then generate the CFN templates in your required region: 
 ```bash
 export BUCKET_NAME_PREFIX=<my-bucket-name> # bucket where customized code will reside
 export AWS_REGION=<your-region>
@@ -77,6 +77,8 @@ cdk deploy
 
 ## Post-deployment
 
+The following `post-deployment.sh` is executable in Linux, not for Mac OSX. Modify the script if needed.
+
 1. Open the "Kafka Client" IDE in Cloud9 console. Create one if the Cloud9 IDE doesn't exist. 
 ```
 VPC prefix: 'emr-stream-demo'
@@ -84,13 +86,18 @@ Instance Type: 't3.small'
 ```
 2. [Attach the IAM role that contains `Cloud9Admin` to your IDE](https://www.eksworkshop.com/020_prerequisites/ec2instance/). 
 
-3. [Turn off AWS managed temporary credentials](https://www.eksworkshop.com/020_prerequisites/workspaceiam/)
+3. Turn off AWS managed temporary credentials in Cloud9:
+```bash
+aws cloud9 update-environment  --environment-id $C9_PID --managed-credentials-action DISABLE
+rm -vf ${HOME}/.aws/credentials
+```
 
 4. Run the script to configure the cloud9 IDE environment:
 ```bash
 curl https://raw.githubusercontent.com/melodyyangaws/emr-stream-demo/master/deployment/app_code/post-deployment.sh | bash
 ```
-5. Launching a new termnial window in Cloud9, send the sample data to MSK:
+5. Wait for 5 mins, then check the [MSK cluster](https://us-west-2.console.aws.amazon.com/msk/) status. Make sure it is `active` before sending data to the cluster.
+6. Launching a new termnial window in Cloud9, send the sample data to MSK:
 ```bash
 curl -s https://raw.githubusercontent.com/melodyyangaws/emr-stream-demo/master/deployment/app_code/data/nycTaxiRides.gz | zcat | split -l 10000 --filter="kafka_2.12-2.2.1/bin/kafka-console-producer.sh --broker-list ${MSK_SERVER} --topic taxirides ; sleep 0.2"  > /dev/null
 ```
@@ -127,14 +134,21 @@ aws emr-containers start-job-run \
     "monitoringConfiguration": {
         "s3MonitoringConfiguration": {"logUri": "s3://'${S3BUCKET}'/elasticmapreduce/emreks-log/"}}
 }'  
-
-# Verify the job is running in EKS
+```
+## Verify the job is running:
+```bash
+# can see the job pod in EKS
 kubectl get po -n emr
 
 # verify in EMR console
 # in Cloud9, run the consumer tool to check if any data comeing through in the target Kafka topic
 kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic emreks_output --from-beginning
 ```
+## Cancel the long-running job (can get job id from the job submission output or in EMR console)
+```bash
+aws emr-containers cancel-job-run --virtual-cluster-id $VIRTUAL_CLUSTER_ID  --id <YOUR_JOB_ID>
+```
+
 ## EMR on EKS with Fargate
 We will submit the job to the same namespace `emr` as above. 
 
