@@ -11,7 +11,7 @@ aws emr-containers start-job-run \
     "sparkSubmitJobDriver":{
         "entryPoint": "s3://'$S3BUCKET'/app_code/job/pyspark-kinesis.py",
         "entryPointArguments":["'${AWS_REGION}'","s3://'$S3BUCKET'/asloutput/"],
-        "sparkSubmitParameters": "--jars https://repo1.maven.org/maven2/org/apache/spark/spark-streaming-kinesis-asl_2.12/3.1.2/spark-streaming-kinesis-asl_2.12-3.1.2.jar,https://repo1.maven.org/maven2/com/amazonaws/amazon-kinesis-client/1.12.0/amazon-kinesis-client-1.12.0.jar,https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-kinesis/1.12.31/aws-java-sdk-kinesis-1.12.31.jar --conf spark.cleaner.referenceTracking.cleanCheckpoints=true"}}' \
+        "sparkSubmitParameters": "--jars https://repo1.maven.org/maven2/org/apache/spark/spark-streaming-kinesis-asl_2.12/3.1.2/spark-streaming-kinesis-asl_2.12-3.1.2.jar,https://repo1.maven.org/maven2/com/amazonaws/amazon-kinesis-client/1.12.0/amazon-kinesis-client-1.12.0.jar,https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-kinesis/1.12.31/aws-java-sdk-kinesis-1.12.31.jar"}}' \
 --configuration-overrides '{
     "applicationConfiguration": [
         {

@@ -1,7 +1,8 @@
+from __future__ import print_function
+
 from pyspark.streaming.kinesis import KinesisUtils, InitialPositionInStream
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
-from pyspark.sql.types import StructField, StructType, StringType, IntegerType
 import boto3,json,sys
 
 # def printRecord(rdd):
@@ -40,20 +41,23 @@ if __name__ == "__main__":
  
 
     # start Spark process, read from kinesis
-    sc = SparkContext(appName="PythonStreamingKinesisAsl")
+    appName = "PythonStreamingKinesisAsl"
+    endpointUrl="https://kinesis."+client_region+".amazonaws.com"
+    sc = SparkContext(appName=appName)
     ssc = StreamingContext(sc, 5)
-    kinesis = KinesisUtils.createStream(ssc, stream_name,stream_name, 'https://kinesis.'+client_region+'.amazonaws.com',client_region, InitialPositionInStream.TRIM_HORIZON, 2)
-    kinesis.pprint()
-    # write to s3
-    py_rdd = kinesis.map(lambda x: json.loads(x.encode('utf8')))
-    py_rdd.saveAsTextFiles(sys.argv[2])
 
-    # def format_sample(x):
-    #     data = json.loads(x)
-    #     return (data['message_type'], json.dumps(data))
-    ## print to console
-    # parsed = kinesis.map(lambda x: format_sample(x.encode('utf8')))
-    # parsed.pprint()
+    kinesis = KinesisUtils.createStream(ssc,appName,stream_name,endpointUrl,client_region, InitialPositionInStream.TRIM_HORIZON, 2)
+    kinesis.pprint()
+    # # write to s3
+    # py_rdd = kinesis.map(lambda x: json.loads(x.encode('utf8')))
+    # py_rdd.saveAsTextFiles(sys.argv[2])
+
+    def format_sample(x):
+        data = json.loads(x)
+        return (data['message_type'], json.dumps(data))
+    # print to console
+    parsed = kinesis.map(lambda x: format_sample(x.encode('utf8')))
+    parsed.pprint()
 
     ssc.start()
     ssc.awaitTermination()
