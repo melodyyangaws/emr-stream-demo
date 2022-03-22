@@ -1,8 +1,7 @@
-from pyspark.streaming import StreamingContext
 from pyspark.sql import SparkSession
-from pyspark.sql.types import *
-from pyspark.sql.functions import *
-import pyspark,sys,boto3,json
+from pyspark.sql.functions import from_json, col
+from pyspark.sql.types import StructField, StructType, StringType, IntegerType
+import boto3,json,sys
 
 # creating a Kinesis stream
 stream_name='pyspark-kinesis'
@@ -17,7 +16,7 @@ try:
 except:
     print("the stream exists")
 
-# creating a couple of messages to send to kinesis
+# sending a couple of messages to kinesis
 messages = [
     {'message_type': 'message1', 'count': 2},
     {'message_type': 'message2', 'count': 1},
@@ -32,52 +31,49 @@ for message in messages:
         PartitionKey='part_key')
 
 spark = SparkSession.builder \
-.appName('PySparkKinesis') \
-.getOrCreate()
+    .appName('PySparkKinesis') \
+    .getOrCreate()
 
 # spark.sparkContext.setLogLevel("DEBUG")
-
 kinesis = spark \
-        .readStream \
-        .format('kinesis') \
-        .option('streamName', stream_name) \
-        .option('endpointUrl', 'https://kinesis.'+client_region+'.amazonaws.com')\
-        .option('region', client_region) \
-        .option('startingposition', 'TRIM_HORIZON')\
-        .option('awsUseInstanceProfile', 'true') \
-        .load()
+    .readStream \
+    .format('kinesis') \
+    .option('streamName', stream_name) \
+    .option('endpointUrl', 'https://kinesis.'+client_region+'.amazonaws.com')\
+    .option('region', client_region) \
+    .option('startingposition', 'TRIM_HORIZON')\
+    .option('awsUseInstanceProfile', 'false') \
+    .load()
 
 
-data_schema = StructType([
+schema = StructType([
             StructField("message_type", StringType()),
             StructField("count", IntegerType())])
 
      
-# kinesis.selectExpr('CAST(data AS STRING)')\
-#     .select(from_json('data', schema).alias('data'))\
-#     .select('data.*')\
-#     .writeStream \
-#     .outputMode('append')\
-#     .format('console') \
-#     .option('checkpointLocation',sys.argv[2])\
-#     .option('truncate', True) \
-#     .trigger(once=True) \
-#     .start() \
-#     .awaitTermination()
-
 kinesis.selectExpr('CAST(data AS STRING)')\
-    .select(from_json('data',data_schema).alias('data'))\
+    .select(from_json('data', schema).alias('data'))\
     .select('data.*')\
     .writeStream \
     .outputMode('append')\
-    .format('parquet') \
-    .option('truncate', True) \
-    .option('checkpointLocation', sys.argv[2]) \
-    .option('path',sys.argv[3]) \
+    .format('console') \
     .trigger(once=True) \
     .start() \
     .awaitTermination()
-    # .trigger(processingTime='5 seconds') \
 
-# cleanup
+# write to s3
+# kinesis.selectExpr('CAST(data AS STRING)')\
+#     .select(from_json('data',data_schema).alias('data'))\
+#     .select('data.*')\
+#     .writeStream \
+#     .outputMode('append')\
+#     .format('parquet') \
+#     .option('truncate', True) \
+#     .option('checkpointLocation', sys.argv[2]) \
+#     .option('path',sys.argv[3]) \
+#     .trigger(processingTime='5 seconds') \
+#     .start() \
+#     .awaitTermination()
+
+# delete the kinesis stream
 # client.delete_stream(StreamName=stream_name)

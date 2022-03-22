@@ -108,7 +108,26 @@ kafka_2.12-2.2.1/bin/kafka-console-consumer.sh \
 --topic taxirides \
 --from-beginning
 ```
+## Build custom docker image
+To demo the Sparksql + Kinesis integration, we need to build a custom EMR on EKS docker image with the kinesis-sql and boto3 libs.
 
+Build a custom image based on EMR on EKS 6.5:
+```bash
+export AWS_REGION=$(aws configure list | grep region | awk '{print $2}')
+export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
+export ECR_URL=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 895885662937.dkr.ecr.us-west-2.amazonaws.com
+docker build -t emr6.5_custom .
+
+# create ECR repo in current account
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
+aws ecr create-repository --repository-name emr6.5_custom_boto3 --image-scanning-configuration scanOnPush=true --region $AWS_REGION
+
+# push to ECR
+docker tag emr6.5_custom $ECR_URL/emr6.5_custom_boto3
+docker push $ECR_URL/emr6.5_custom_boto3
+```
 
 ## Submit job with EMR on EKS
 ```bash

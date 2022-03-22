@@ -11,7 +11,7 @@ aws emr-containers start-job-run \
     "sparkSubmitJobDriver":{
         "entryPoint": "s3://'$S3BUCKET'/app_code/job/qubole-kinesis.py",
         "entryPointArguments":["'${AWS_REGION}'","s3://'${S3BUCKET}'/qubolecheckpoint","s3://'${S3BUCKET}'/qubole-kinesis-output"],
-        "sparkSubmitParameters": "--jars https://repo1.maven.org/maven2/com/qubole/spark/spark-sql-kinesis_2.12/1.2.0_spark-3.0/spark-sql-kinesis_2.12-1.2.0_spark-3.0.jar,https://repo1.maven.org/maven2/com/amazonaws/amazon-kinesis-client/1.14.8/amazon-kinesis-client-1.14.8.jar,https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-kinesis/1.12.31/aws-java-sdk-kinesis-1.12.31.jar --conf spark.cleaner.referenceTracking.cleanCheckpoints=true"}}' \
+        "sparkSubmitParameters": "--conf spark.cleaner.referenceTracking.cleanCheckpoints=true"}}' \
 --configuration-overrides '{
     "applicationConfiguration": [
         {

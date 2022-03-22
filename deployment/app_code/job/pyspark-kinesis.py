@@ -25,28 +25,28 @@ if __name__ == "__main__":
     except:
         print("the stream exists")
     # creating a couple of messages to send to kinesis
-    messages = [
-        {'message_type': 'message1', 'count': 2},
-        {'message_type': 'message2', 'count': 1},
-        {'message_type': 'message1', 'count': 2},
-        {'message_type': 'message3', 'count': 3},
-        {'message_type': 'message1', 'count': 5}
-    ]
+    # messages = [
+    #     {'message_type': 'message1', 'count': 2},
+    #     {'message_type': 'message2', 'count': 1},
+    #     {'message_type': 'message1', 'count': 2},
+    #     {'message_type': 'message3', 'count': 3},
+    #     {'message_type': 'message1', 'count': 5}
+    # ]
 
-    for message in messages:
-        client.put_record(
-            StreamName=stream_name,
-            Data=json.dumps(message),
-            PartitionKey='part_key')
+    # for message in messages:
+    #     client.put_record(
+    #         StreamName=stream_name,
+    #         Data=json.dumps(message),
+    #         PartitionKey='part_key')
  
 
     # start Spark process, read from kinesis
     appName = "PythonStreamingKinesisAsl"
     endpointUrl="https://kinesis."+client_region+".amazonaws.com"
     sc = SparkContext(appName=appName)
-    ssc = StreamingContext(sc, 5)
+    ssc = StreamingContext(sc, 2)
 
-    kinesis = KinesisUtils.createStream(ssc,appName,stream_name,endpointUrl,client_region, InitialPositionInStream.TRIM_HORIZON, 2)
+    kinesis = KinesisUtils.createStream(ssc,appName,stream_name,endpointUrl,client_region, InitialPositionInStream.LATEST, 2)
     kinesis.pprint()
     # # write to s3
     # py_rdd = kinesis.map(lambda x: json.loads(x.encode('utf8')))
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         data = json.loads(x)
         return (data['message_type'], json.dumps(data))
     # print to console
-    parsed = kinesis.map(lambda x: format_sample(x.encode('utf8')))
+    parsed = kinesis.map(lambda x: format_sample(x))
     parsed.pprint()
 
     ssc.start()
