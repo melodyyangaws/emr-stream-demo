@@ -108,28 +108,24 @@ kafka_2.12-2.2.1/bin/kafka-console-consumer.sh \
 --topic taxirides \
 --from-beginning
 ```
-## Build custom docker image
-To demo the Sparksql + Kinesis integration, we need to build a custom EMR on EKS docker image with the kinesis-sql and boto3 libs.
 
-Build a custom image based on EMR on EKS 6.5:
-```bash
-export AWS_REGION=$(aws configure list | grep region | awk '{print $2}')
-export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
-export ECR_URL=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+# Read stream from MSK
+Spark consumer applications reading from Amazon MSK:
 
-aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 895885662937.dkr.ecr.us-west-2.amazonaws.com
-docker build -t emr6.5_custom .
+* [1. Run a job with EMR on EKS](#1-submit-a-job-with-EMR-on-EKS) 
+* [2. Same job with Fargate on EMR on EKS](#2-EMR-on-EKS-with-Fargate) 
+* [3. Same job with EMR on EC2](#3-OPTIONAL-Submit-step-to-EMR-on-EC2) 
 
-# create ECR repo in current account
-aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
-aws ecr create-repository --repository-name emr6.5_custom_boto3 --image-scanning-configuration scanOnPush=true --region $AWS_REGION
+# Read stream from Kinesis
+* [1. Build a custom docker image](#1-Build-custom-docker-image) 
+* [2. Run a job with kinesis-sql connector](#2-Use-kinesis-sql-connector) 
+* [3. Run a job with Spark's DStream](#3-Use-Spark-s-DStream) 
 
-# push to ECR
-docker tag emr6.5_custom $ECR_URL/emr6.5_custom_boto3
-docker push $ECR_URL/emr6.5_custom_boto3
-```
+# pySpark + MSK integration
+## 1. Submit a job with EMR on EKS 
 
-## Submit job with EMR on EKS
+- [Sample job](deployment/app_code/job/msk_consumer.py) to consume data stream in MSK
+- Submit the job:
 ```bash
 aws emr-containers start-job-run \
 --virtual-cluster-id $VIRTUAL_CLUSTER_ID \
@@ -168,16 +164,16 @@ kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} 
 aws emr-containers cancel-job-run --virtual-cluster-id $VIRTUAL_CLUSTER_ID  --id <YOUR_JOB_ID>
 ```
 
-## EMR on EKS with Fargate
-We will submit the job to the same namespace `emr` as above. 
+## 2. EMR on EKS with Fargate
+Run the [same job](deployment/app_code/job/msk_consumer.py) on the same EKS cluster, but with the serverless option - Fargate compute choice.
 
-To ensure it is picked up by Fargate not by the managed nodegroup on EC2, tag the Spark application by a label that has setup in a Fargate profile earlier:
+To ensure it is picked up by Fargate not by the managed nodegroup on EC2, we will tag the Spark job by a `serverless` label, which has setup in a Fargate profile prevously:
 ```yaml
 --conf spark.kubernetes.driver.label.type=serverless
 --conf spark.kubernetes.executor.label.type=serverless
 ```
 
-Run the script to submit the job to Fargate:
+Submit the job to Fargate:
 
 ```bash
 aws emr-containers start-job-run \
@@ -193,9 +189,9 @@ aws emr-containers start-job-run \
 --configuration-overrides '{
     "monitoringConfiguration": {
         "s3MonitoringConfiguration": {"logUri": "s3://'${S3BUCKET}'/elasticmapreduce/emreksfg-log/"}}}'        
-
-
-# Verify the job is running in EKS Fargate
+```
+## Verify the job is running on EKS Fargate
+```bash
 kubectl get po -n emr
 
 # verify in EMR console
@@ -206,7 +202,7 @@ kafka_2.12-2.2.1/bin/kafka-console-consumer.sh \
 --from-beginning
 ```
 
-## OPTIONAL: Submit step to EMR on EC2
+## 3. OPTIONAL: Submit step to EMR on EC2
 
 ```bash
 cluster_id=$(aws emr list-clusters --cluster-states WAITING --query 'Clusters[?Name==`emr-stream-demo`].Id' --output text)
@@ -215,8 +211,10 @@ MSK_SERVER=$(echo $MSK_SERVER | cut -d',' -f 2)
 aws emr add-steps \
 --cluster-id $cluster_id \
 --steps Type=spark,Name=emrec2_stream,Args=[--deploy-mode,cluster,--conf,spark.cleaner.referenceTracking.cleanCheckpoints=true,--conf,spark.executor.instances=2,--conf,spark.executor.memory=2G,--conf,spark.driver.memory=2G,--conf,spark.executor.cores=2,--packages,org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.1,s3://$S3BUCKET/app_code/job/msk_consumer.py,$MSK_SERVER,s3://$S3BUCKET/stream/checkpoint/emrec2,emrec2_output],ActionOnFailure=CONTINUE  
+```
 
-
+## Verify
+```bash
 # verify in EMR console
 # in Cloud9, run the consumer tool to check if any data comeing through in the target Kafka topic
 kafka_2.12-2.2.1/bin/kafka-console-consumer.sh \
@@ -225,6 +223,101 @@ kafka_2.12-2.2.1/bin/kafka-console-consumer.sh \
 --from-beginning
 ```
 
+# pySpark + Kinesis integration
+
+## 1. Build custom docker image
+We will create & delete a kinesis test stream on the fly via boto3, so a custom EMR on EKS docker image to include the Python library is needed. The custom docker image is not compulsory, if you don't need the boto3 and kinesis-sql connector.
+
+Build a image based on EMR on EKS 6.5:
+```bash
+export AWS_REGION=$(aws configure list | grep region | awk '{print $2}')
+export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
+export ECR_URL=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 895885662937.dkr.ecr.us-west-2.amazonaws.com
+docker build -t emr6.5_custom .
+
+# create ECR repo in current account
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
+aws ecr create-repository --repository-name emr6.5_custom_boto3 --image-scanning-configuration scanOnPush=true --region $AWS_REGION
+
+# push to ECR
+docker tag emr6.5_custom $ECR_URL/emr6.5_custom_boto3
+docker push $ECR_URL/emr6.5_custom_boto3
+```
+
+## 2. Use kinesis-sql connector
+This demo uses the `com.qubole.spark/spark-sql-kinesis_2.12/1.2.0-spark_3.0` connector to interact with Kinesis. 
+
+To enable the job-level access control, ie. the [IRSA feature](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html), we have forked the [kinesis-sql git repo](https://github.com/melodyyangaws/kinesis-sql) and recompiled a new jar after upgraded the AWS java SDK. The custom docker build above will pick up the upgraded connector automatically.
+
+- [Sample job](deployment/app_code/job/qubole-kinesis.py) to consume data stream in Kinesis
+- Submit the job:
+```bash
+export AWS_REGION=$(aws configure list | grep region | awk '{print $2}')
+export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
+export ECR_URL=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+aws emr-containers start-job-run \
+--virtual-cluster-id $VIRTUAL_CLUSTER_ID \
+--name kinesis-demo \
+--execution-role-arn $EMR_ROLE_ARN \
+--release-label emr-6.5.0-latest \
+--job-driver '{
+    "sparkSubmitJobDriver":{
+        "entryPoint": "s3://'$S3BUCKET'/app_code/job/qubole-kinesis.py",
+        "entryPointArguments":["'${AWS_REGION}'","s3://'${S3BUCKET}'/qubolecheckpoint","s3://'${S3BUCKET}'/qubole-kinesis-output"],
+        "sparkSubmitParameters": "--conf spark.cleaner.referenceTracking.cleanCheckpoints=true"}}' \
+--configuration-overrides '{
+    "applicationConfiguration": [
+        {
+            "classification": "spark-defaults",
+            "properties": {
+                "spark.kubernetes.container.image": "'${ECR_URL}'/emr6.5_custom_boto3:latest"
+            }
+        }
+    ],
+    "monitoringConfiguration": {
+        "s3MonitoringConfiguration": {"logUri": "s3://'${S3BUCKET}'/elasticmapreduce/kinesis-fargate-log/"}
+    }
+}'
+````
+
+## 3. Use Spark's DStream
+
+This demo uses the `spark-streaming-kinesis-asl_2.12` library to read from Kinesis. Check out the [Spark's official document](https://spark.apache.org/docs/latest/streaming-kinesis-integration.html). The Spark syntax is slightly different from the spark-sql-kinesis approach. It operates at RDD level.
+
+- [Sample job](deployment/app_code/job/pyspark-kinesis.py) to consume data stream from Kinesis
+- Submit the job:
+```bash
+export AWS_REGION=$(aws configure list | grep region | awk '{print $2}')
+export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
+export ECR_URL=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+aws emr-containers start-job-run \
+--virtual-cluster-id $VIRTUAL_CLUSTER_ID \
+--name kinesis-demo \
+--execution-role-arn $EMR_ROLE_ARN \
+--release-label emr-6.5.0-latest \
+--job-driver '{
+    "sparkSubmitJobDriver":{
+        "entryPoint": "s3://'$S3BUCKET'/app_code/job/pyspark-kinesis.py",
+        "entryPointArguments":["'${AWS_REGION}'","s3://'$S3BUCKET'/asloutput/"],
+        "sparkSubmitParameters": "--jars https://repo1.maven.org/maven2/org/apache/spark/spark-streaming-kinesis-asl_2.12/3.1.2/spark-streaming-kinesis-asl_2.12-3.1.2.jar,https://repo1.maven.org/maven2/com/amazonaws/amazon-kinesis-client/1.12.0/amazon-kinesis-client-1.12.0.jar"}}' \
+--configuration-overrides '{
+    "applicationConfiguration": [
+        {
+            "classification": "spark-defaults",
+            "properties": {
+                "spark.kubernetes.container.image": "'${ECR_URL}'/emr6.5_custom_boto3:latest"
+            }
+        }
+    ],
+    "monitoringConfiguration": {
+        "s3MonitoringConfiguration": {"logUri": "s3://'${S3BUCKET}'/elasticmapreduce/kinesis-fargate-log/"}
+    }
+}'        
+```
 
 ## Useful commands
 
