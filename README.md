@@ -1,7 +1,7 @@
 # Spark Structured Streaming Demo with EMR on EKS
 
 This is a project developed in Python [CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html).
-It includes sample data, Kafka producer simulator and a consumer example that can be run with EMR on EC2 or EMR on EKS. 
+It includes sample data, Kafka producer simulator, and a consumer example that can be run with EMR on EC2 or EMR on EKS. Additionally, we have added few Kinesis examples for difference use cases.
 
 The infrastructure deployment includes the following:
 - A new S3 bucket to store sample data and stream job code
