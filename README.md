@@ -20,6 +20,18 @@ The infrastructure deployment includes the following:
     - The cluster is configured to run one Spark job at a time.
     - The EMR cluster can scale from 1 to 10 core + task nodes
 
+## Spark examples - read stream from MSK
+Spark consumer applications reading from Amazon MSK:
+
+* [1. Run a job with EMR on EKS](##1-submit-a-job-with-EMR-on-EKS) 
+* [2. Same job with Fargate on EMR on EKS](##2-EMR-on-EKS-with-Fargate) 
+* [3. Same job with EMR on EC2](##3-OPTIONAL-Submit-step-to-EMR-on-EC2) 
+
+## Spark examples - read stream from Kinesis
+* [1. Build a custom docker image](##1-Build-custom-docker-image) 
+* [2. Run a job with kinesis-sql connector](##2-Use-kinesis-sql-connector) 
+* [3. Run a job with Spark's DStream](##3-Use-Spark-s-DStream) 
+
 ## Deploy Infrastructure
 
 The provisioning takes about 30 minutes to complete. 
@@ -109,20 +121,8 @@ kafka_2.12-2.2.1/bin/kafka-console-consumer.sh \
 --from-beginning
 ```
 
-# Read stream from MSK
-Spark consumer applications reading from Amazon MSK:
-
-* [1. Run a job with EMR on EKS](#1-submit-a-job-with-EMR-on-EKS) 
-* [2. Same job with Fargate on EMR on EKS](#2-EMR-on-EKS-with-Fargate) 
-* [3. Same job with EMR on EC2](#3-OPTIONAL-Submit-step-to-EMR-on-EC2) 
-
-# Read stream from Kinesis
-* [1. Build a custom docker image](#1-Build-custom-docker-image) 
-* [2. Run a job with kinesis-sql connector](#2-Use-kinesis-sql-connector) 
-* [3. Run a job with Spark's DStream](#3-Use-Spark-s-DStream) 
-
-# pySpark + MSK integration
-## 1. Submit a job with EMR on EKS 
+## MSK integration
+### 1. Submit a job with EMR on EKS 
 
 - [Sample job](deployment/app_code/job/msk_consumer.py) to consume data stream in MSK
 - Submit the job:
@@ -150,7 +150,7 @@ aws emr-containers start-job-run \
         "s3MonitoringConfiguration": {"logUri": "s3://'${S3BUCKET}'/elasticmapreduce/emreks-log/"}}
 }'  
 ```
-## Verify the job is running:
+### Verify the job is running:
 ```bash
 # can see the job pod in EKS
 kubectl get po -n emr
@@ -159,12 +159,12 @@ kubectl get po -n emr
 # in Cloud9, run the consumer tool to check if any data comeing through in the target Kafka topic
 kafka_2.12-2.2.1/bin/kafka-console-consumer.sh --bootstrap-server ${MSK_SERVER} --topic emreks_output --from-beginning
 ```
-## Cancel the long-running job (can get job id from the job submission output or in EMR console)
+### Cancel the long-running job (can get job id from the job submission output or in EMR console)
 ```bash
 aws emr-containers cancel-job-run --virtual-cluster-id $VIRTUAL_CLUSTER_ID  --id <YOUR_JOB_ID>
 ```
 
-## 2. EMR on EKS with Fargate
+### 2. EMR on EKS with Fargate
 Run the [same job](deployment/app_code/job/msk_consumer.py) on the same EKS cluster, but with the serverless option - Fargate compute choice.
 
 To ensure it is picked up by Fargate not by the managed nodegroup on EC2, we will tag the Spark job by a `serverless` label, which has setup in a Fargate profile prevously:
@@ -190,7 +190,7 @@ aws emr-containers start-job-run \
     "monitoringConfiguration": {
         "s3MonitoringConfiguration": {"logUri": "s3://'${S3BUCKET}'/elasticmapreduce/emreksfg-log/"}}}'        
 ```
-## Verify the job is running on EKS Fargate
+### Verify the job is running on EKS Fargate
 ```bash
 kubectl get po -n emr
 
@@ -202,7 +202,7 @@ kafka_2.12-2.2.1/bin/kafka-console-consumer.sh \
 --from-beginning
 ```
 
-## 3. OPTIONAL: Submit step to EMR on EC2
+### 3. OPTIONAL: Submit step to EMR on EC2
 
 ```bash
 cluster_id=$(aws emr list-clusters --cluster-states WAITING --query 'Clusters[?Name==`emr-stream-demo`].Id' --output text)
@@ -213,7 +213,7 @@ aws emr add-steps \
 --steps Type=spark,Name=emrec2_stream,Args=[--deploy-mode,cluster,--conf,spark.cleaner.referenceTracking.cleanCheckpoints=true,--conf,spark.executor.instances=2,--conf,spark.executor.memory=2G,--conf,spark.driver.memory=2G,--conf,spark.executor.cores=2,--packages,org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.1,s3://$S3BUCKET/app_code/job/msk_consumer.py,$MSK_SERVER,s3://$S3BUCKET/stream/checkpoint/emrec2,emrec2_output],ActionOnFailure=CONTINUE  
 ```
 
-## Verify
+### Verify
 ```bash
 # verify in EMR console
 # in Cloud9, run the consumer tool to check if any data comeing through in the target Kafka topic
@@ -223,9 +223,9 @@ kafka_2.12-2.2.1/bin/kafka-console-consumer.sh \
 --from-beginning
 ```
 
-# pySpark + Kinesis integration
+## Kinesis integration
 
-## 1. Build custom docker image
+### 1. Build custom docker image
 We will create & delete a kinesis test stream on the fly via boto3, so a custom EMR on EKS docker image to include the Python library is needed. The custom docker image is not compulsory, if you don't need the boto3 and kinesis-sql connector.
 
 Build a image based on EMR on EKS 6.5:
@@ -246,7 +246,7 @@ docker tag emr6.5_custom $ECR_URL/emr6.5_custom_boto3
 docker push $ECR_URL/emr6.5_custom_boto3
 ```
 
-## 2. Use kinesis-sql connector
+### 2. Use kinesis-sql connector
 This demo uses the `com.qubole.spark/spark-sql-kinesis_2.12/1.2.0-spark_3.0` connector to interact with Kinesis. 
 
 To enable the job-level access control, ie. the [IRSA feature](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html), we have forked the [kinesis-sql git repo](https://github.com/melodyyangaws/kinesis-sql) and recompiled a new jar after upgraded the AWS java SDK. The custom docker build above will pick up the upgraded connector automatically.
@@ -283,7 +283,7 @@ aws emr-containers start-job-run \
 }'
 ````
 
-## 3. Use Spark's DStream
+### 3. Use Spark's DStream
 
 This demo uses the `spark-streaming-kinesis-asl_2.12` library to read from Kinesis. Check out the [Spark's official document](https://spark.apache.org/docs/latest/streaming-kinesis-integration.html). The Spark syntax is slightly different from the spark-sql-kinesis approach. It operates at RDD level.
 
