@@ -10,8 +10,8 @@
 # OR CONDITIONS OF ANY KIND, express o#implied. See the License for the specific language governing permissions     #
 # and limitations under the License.  																				#                                                                              #
 ######################################################################################################################
-
-from aws_cdk.core import (Aws, Construct)
+from constructs import Construct
+from aws_cdk import Aws
 from aws_cdk.aws_eks import ICluster, KubernetesManifest
 from lib.util.manifest_reader import *
 import os

@@ -10,18 +10,15 @@
 # OR CONDITIONS OF ANY KIND, express o#implied. See the License for the specific language governing permissions     #
 # and limitations under the License.  																				#                                                                              #
 ######################################################################################################################
-
-from aws_cdk import (
-    core,
-    aws_iam as iam
-)
+from constructs import Construct
+from aws_cdk import aws_iam as iam
 from aws_cdk.aws_eks import ICluster
 from lib.util.manifest_reader import *
 import os
 
-class EksSAConst(core.Construct):
+class EksSAConst(Construct):
 
-    def __init__(self, scope: core.Construct, id:str, eks_cluster: ICluster, **kwargs,) -> None:
+    def __init__(self, scope: Construct, id:str, eks_cluster: ICluster, **kwargs,) -> None:
         super().__init__(scope, id, **kwargs)
 
         source_dir=os.path.split(os.environ['VIRTUAL_ENV'])[0]+'/source'

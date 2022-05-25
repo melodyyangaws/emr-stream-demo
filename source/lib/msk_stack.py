@@ -11,16 +11,9 @@
 # and limitations under the License.  																				#                                                                              #
 ######################################################################################################################
 
-from aws_cdk import (
-    core, 
-    aws_iam as iam,
-    aws_cloud9 as cloud9,
-    aws_ec2 as ec2,
-    aws_msk as msk,
-    aws_eks as eks
-)
-
-class MSKStack(core.NestedStack):
+from aws_cdk import (RemovalPolicy,NestedStack,aws_cloud9 as cloud9,aws_ec2 as ec2, aws_msk_alpha as msk)
+from constructs import Construct
+class MSKStack(NestedStack):
 
     @property
     def Cloud9URL(self):
@@ -31,7 +24,7 @@ class MSKStack(core.NestedStack):
         return self._msk_cluster.bootstrap_brokers
 
 
-    def __init__(self, scope: core.Construct, id: str, cluster_name:str, eksvpc: ec2.IVpc, **kwargs) -> None:
+    def __init__(self, scope: Construct, id: str, cluster_name:str, eksvpc: ec2.IVpc, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
         # launch Cloud9 as Kafka client
@@ -41,7 +34,7 @@ class MSKStack(core.NestedStack):
             subnet_id=eksvpc.public_subnets[0].subnet_id,
             automatic_stop_time_minutes=60
         )
-        self._c9env.apply_removal_policy(core.RemovalPolicy.DESTROY)
+        self._c9env.apply_removal_policy(RemovalPolicy.DESTROY)
 
         # MSK Cluster Security Group
         sg_msk = ec2.SecurityGroup(self, "msk_sg",
@@ -57,15 +50,15 @@ class MSKStack(core.NestedStack):
    
         self._msk_cluster = msk.Cluster(self, "EMR-EKS-stream",
             cluster_name=cluster_name,
-            kafka_version=msk.KafkaVersion.V2_6_1,
+            kafka_version=msk.KafkaVersion.V2_6_2,
             vpc=eksvpc,
-            ebs_storage_info=msk.EbsStorageInfo(volume_size=100),
+            ebs_storage_info=msk.EbsStorageInfo(volume_size=500),
             encryption_in_transit=msk.EncryptionInTransitConfig(
                 enable_in_cluster=True,
                 client_broker=msk.ClientBrokerEncryption.TLS_PLAINTEXT
             ),
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.BURSTABLE3, ec2.InstanceSize.SMALL),
-            removal_policy=core.RemovalPolicy.DESTROY,
+            removal_policy=RemovalPolicy.DESTROY,
             security_groups=[sg_msk],
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC,one_per_az=True)
         )

@@ -4,18 +4,15 @@ export stack_name="${1:-StreamOnEKS}"
 
 # delete EMR virtual cluster if needed
 emr_cv=$(aws emr-containers list-virtual-clusters --state ARRESTED --query 'virtualClusters[*].id' --output text)
-if [ ! -z "$emr_cv" ] 
-then
-    for i in emr_cv
-    do
+if [ ! -z "$emr_cv" ]; then
+    for i in emr_cv; do
         aws emr-containers delete-virtual-cluster --id $i
-    done    
+    done
 fi
 
 # delete S3
-S3BUCKET=$(aws cloudformation describe-stacks --stack-name StreamOnEKS --query "Stacks[0].Outputs[?OutputKey=='CODEBUCKET'].OutputValue" --output text)
-if [ ! "$S3BUCKET" == 'None' ] 
-then
+S3BUCKET=$(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?OutputKey=='CODEBUCKET'].OutputValue" --output text)
+if [ ! "$S3BUCKET" == 'None' ]; then
     echo "Delete EMR log from S3"
     aws s3 rm s3://$S3BUCKET --recursive
     aws s3 rb s3://$S3BUCKET --force

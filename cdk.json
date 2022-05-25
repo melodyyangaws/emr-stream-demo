@@ -3,10 +3,7 @@
   "context": {
     "project_name": "emr-stream-demo",
     "emr_version":"emr-6.6.0",
-    "version": "v1.0.0",
-    "@aws-cdk/core:enableStackNameDuplicates": "true",
-    "aws-cdk:enableDiffNoFail": "true",
-    "@aws-cdk/core:stackRelativeExports": "true",
-    "@aws-cdk/core:newStyleStackSynthesis": "true"
+    "version": "v2.0.0",
+    "@aws-cdk/core:stackRelativeExports": "false"
   }
 }

@@ -1,17 +1,8 @@
-######################################################################################################################
-# Copyright 2020-2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                      #
-#                                                                                                                   #
-# Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance    #
-# with the License. A copy of the License is located at                                                             #
-#                                                                                                                   #
-#     http://www.apache.org/licenses/LICENSE-2.0                                                                    #
-#                                                                                                                   #
-# or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES #
-# OR CONDITIONS OF ANY KIND, express o#implied. See the License for the specific language governing permissions     #
-# and limitations under the License.  																				#                                                                              #
-######################################################################################################################
+# // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: License :: OSI Approved :: MIT No Attribution License (MIT-0)
 
-from aws_cdk import core
+from aws_cdk import Stack
+from constructs import Construct
 from lib.cdk_infra.network_sg import NetworkSgConst
 from lib.cdk_infra.iam_roles import IamConst
 from lib.cdk_infra.eks_cluster import EksConst
@@ -21,7 +12,7 @@ from lib.cdk_infra.s3_app_code import S3AppCodeConst
 from lib.cdk_infra.spark_permission import SparkOnEksConst
 from lib.util.manifest_reader import *
 
-class SparkOnEksStack(core.Stack):
+class SparkOnEksStack(Stack):
 
     @property
     def code_bucket(self):
@@ -44,7 +35,7 @@ class SparkOnEksStack(core.Stack):
     def EMRExecRole(self):
         return self.emr.EMRExecRole    
         
-    def __init__(self, scope: core.Construct, id: str, eksname: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, id: str, eksname: str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
         # 1. a new bucket to store application code

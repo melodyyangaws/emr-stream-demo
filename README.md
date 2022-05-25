@@ -12,25 +12,26 @@ The infrastructure deployment includes the following:
     - The virtual cluster links to `emr` namespace 
     - The namespace accommodates two types of Spark jobs, ie. run on managed node group or serverless job on Fargate
     - All EMR on EKS configuration are done, including fine-grained access controls for pods by the AWS native solution IAM roles for service accounts
-- A MSK Cluster in the same VPC with 2 brokers in total. Kafka version is 2.6.1.
+- A MSK Cluster in the same VPC with 2 brokers in total. Kafka version is 2.6.2.
     - A Cloud9 IDE as the command line environment in the demo. 
     - Kafka Client tool will be installed on the Cloud9 IDE
-- Optionally, sets up an EMR on EC2 cluster with managed scaling enabled.
-    - The cluster has 1 master and 1 core nodes running on r5.xlarge.
-    - The cluster is configured to run one Spark job at a time.
-    - The EMR cluster can scale from 1 to 10 core + task nodes
+- An EMR on EC2 cluster with managed scaling enabled.
+    - 1 primary and 1 core nodes with r5.xlarge.
+    - configured to run one Spark job at a time.
+    - can scale from 1 to 10 core + task nodes
+    - mounted EFS for checkpointing test/demo (a bootstrap action)
 
 ## Spark examples - read stream from MSK
 Spark consumer applications reading from Amazon MSK:
 
-* [1. Run a job with EMR on EKS](##1-submit-a-job-with-EMR-on-EKS) 
-* [2. Same job with Fargate on EMR on EKS](##2-EMR-on-EKS-with-Fargate) 
-* [3. Same job with EMR on EC2](##3-OPTIONAL-Submit-step-to-EMR-on-EC2) 
+* [1. Run a job with EMR on EKS](###1-submit-a-job-with-emr-on-eks) 
+* [2. Same job with Fargate on EMR on EKS](###2-EMR-on-EKS-with-Fargate) 
+* [3. Same job with EMR on EC2](###3-optional-Submit-step-to-EMR-on-EC2) 
 
 ## Spark examples - read stream from Kinesis
-* [1. Build a custom docker image](##1-Build-custom-docker-image) 
-* [2. Run a job with kinesis-sql connector](##2-Use-kinesis-sql-connector) 
-* [3. Run a job with Spark's DStream](##3-Use-Spark-s-DStream) 
+* [1. (Optional) Build a custom docker image](###1-optional-Build-custom-docker-image) 
+* [2. Run a job with kinesis-sql connector](###2-Use-kinesis-sql-connector) 
+* [3. Run a job with Spark's DStream](###3-use-spark-s-dstream) 
 
 ## Deploy Infrastructure
 
@@ -54,7 +55,7 @@ You can customize the solution, such as set to a different region, then generate
 export BUCKET_NAME_PREFIX=<my-bucket-name> # bucket where customized code will reside
 export AWS_REGION=<your-region>
 export SOLUTION_NAME=emr-stream-demo
-export VERSION=v1.0.0 # version number for the customized code
+export VERSION=v2.0.0 # version number for the customized code
 
 ./deployment/build-s3-dist.sh $BUCKET_NAME_PREFIX $SOLUTION_NAME $VERSION
 
@@ -202,7 +203,7 @@ kafka_2.12-2.2.1/bin/kafka-console-consumer.sh \
 --from-beginning
 ```
 
-### 3. OPTIONAL: Submit step to EMR on EC2
+### 3. (Optional) Submit step to EMR on EC2
 
 ```bash
 cluster_id=$(aws emr list-clusters --cluster-states WAITING --query 'Clusters[?Name==`emr-stream-demo`].Id' --output text)
@@ -225,7 +226,7 @@ kafka_2.12-2.2.1/bin/kafka-console-consumer.sh \
 
 ## Kinesis integration
 
-### 1. Build custom docker image
+### 1. (Optional) Build custom docker image
 We will create & delete a kinesis test stream on the fly via boto3, so a custom EMR on EKS docker image to include the Python library is needed. The custom docker image is not compulsory, if you don't need the boto3 and kinesis-sql connector.
 
 Build a image based on EMR on EKS 6.5:

@@ -1,34 +1,43 @@
-######################################################################################################################
-# Copyright 2020-2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                      #
-#                                                                                                                   #
-# Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance    #
-# with the License. A copy of the License is located at                                                             #
-#                                                                                                                   #
-#     http://www.apache.org/licenses/LICENSE-2.0                                                                    #
-#                                                                                                                   #
-# or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES #
-# OR CONDITIONS OF ANY KIND, express o#implied. See the License for the specific language governing permissions     #
-# and limitations under the License.  																				#                                                                              #
-######################################################################################################################
-
-from aws_cdk import (
-    core, 
-    aws_iam as iam,
-    aws_ec2 as ec2,
-
-)
+# // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: License :: OSI Approved :: MIT No Attribution License (MIT-0)
+#
+from constructs import Construct
+from aws_cdk import (Aws,NestedStack,RemovalPolicy,Tags,CfnTag,aws_iam as iam,aws_ec2 as ec2,aws_efs as efs)
 from aws_cdk.aws_emr import CfnCluster
 from lib.util.manifest_reader import load_yaml_replace_var_local
 import os
 
-class EMREC2Stack(core.NestedStack):
+class EMREC2Stack(NestedStack):
 
-    def __init__(self, scope: core.Construct, id: str, emr_version: str, cluster_name:str, eksvpc: ec2.IVpc, code_bucket:str, **kwargs) -> None:
+    def __init__(self, scope: Construct, id: str, emr_version: str, cluster_name:str, eksvpc: ec2.IVpc, code_bucket:str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
         source_dir=os.path.split(os.environ['VIRTUAL_ENV'])[0]+'/source'
         # The VPC requires a Tag to allow EMR to create the relevant security groups
-        core.Tags.of(eksvpc).add("for-use-with-amazon-emr-managed-policies", "true")   
+        Tags.of(eksvpc).add("for-use-with-amazon-emr-managed-policies", "true")   
+
+        #######################################
+        #######                         #######
+        #######  EFS for checkpointing  #######
+        #######                         #######
+        #######################################
+        _efs_sg = ec2.SecurityGroup(self,'EFSSg',
+            security_group_name=cluster_name + '-EFS-sg',
+            vpc=eksvpc,
+            description='NFS access to EFS from EMR on EC2 cluster',
+        )
+        _efs_sg.add_ingress_rule(ec2.Peer.ipv4(eksvpc.vpc_cidr_block),ec2.Port.tcp(port=2049))
+        Tags.of(_efs_sg).add('Name', cluster_name+'-EFS-sg')
+
+        _efs=efs.FileSystem(self,'EFSCheckpoint',
+            vpc=eksvpc,
+            security_group=_efs_sg,
+            encrypted=True,
+            lifecycle_policy=efs.LifecyclePolicy.AFTER_60_DAYS,
+            performance_mode=efs.PerformanceMode.MAX_IO,
+            removal_policy=RemovalPolicy.DESTROY,
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_NAT, one_per_az=True)
+        )
 
         ###########################
         #######             #######
@@ -40,7 +49,8 @@ class EMREC2Stack(core.NestedStack):
             assumed_by=iam.ServicePrincipal("ec2.amazonaws.com"),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AmazonElasticMapReduceforEC2Role"),
-                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonMSKFullAccess")
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonMSKFullAccess"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonElasticFileSystemReadOnlyAccess")
             ]
         )
         _iam = load_yaml_replace_var_local(source_dir+'/app_resources/emr-iam-role.yaml', 
@@ -85,7 +95,7 @@ class EMREC2Stack(core.NestedStack):
             visible_to_all_users=True,
             service_role=svc_role.role_name,
             job_flow_role=emr_job_role.role_name,
-            tags=[core.CfnTag(key="project", value="emr-stream-demo")],
+            tags=[CfnTag(key="project", value="emr-stream-demo")],
             instances=CfnCluster.JobFlowInstancesConfigProperty(
                 termination_protected=False,
                 master_instance_group=CfnCluster.InstanceGroupConfigProperty(
@@ -134,6 +144,13 @@ class EMREC2Stack(core.NestedStack):
                     maximum_core_capacity_units=1,
                     maximum_on_demand_capacity_units=1
                 )   
-            )
+            ),
+            bootstrap_actions=[CfnCluster.BootstrapActionConfigProperty(
+                name="mountEFS",
+                script_bootstrap_action=CfnCluster.ScriptBootstrapActionConfigProperty(
+                    path=f"s3://{code_bucket}/app_code/job/emr-mount-efs.sh",
+                    args=[_efs.file_system_id, Aws.REGION]
+                )
+            )]
         )
         emr_c.add_depends_on(emr_job_flow_profile)

@@ -27,7 +27,7 @@
 #  - version-code: version of the package
 
 # Important: CDK global version number
-cdk_version===1.122.0
+cdk_version===2.12.0
 
 # Check to see if the required parameters have been provided:
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
@@ -179,8 +179,8 @@ for d in `find . -mindepth 1 -maxdepth 1 -type d`; do
         source $venv_folder/bin/activate
         pip3 install --upgrade -q $template_dir --target $venv_folder/lib/python3.*/site-packages
         echo "package python artifact"
-        cd $staging_dist_dir/$fname/$venv_folder/lib/python3.*/site-packages
-        zip -qr9 $staging_dist_dir/$fname.zip .
+        cd $venv_folder/lib/python3.*/site-packages
+        zip -qr9 $staging_dist_dir/$fname.zip . -x "aws_cdk/*"
         echo "zip -r $staging_dist_dir/$fname"
         cd $staging_dist_dir/$fname
         rm -rf $venv_folder

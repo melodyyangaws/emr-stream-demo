@@ -1,24 +1,11 @@
-######################################################################################################################
-# Copyright 2020-2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                      #
-#                                                                                                                   #
-# Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance    #
-# with the License. A copy of the License is located at                                                             #
-#                                                                                                                   #
-#     http://www.apache.org/licenses/LICENSE-2.0                                                                    #
-#                                                                                                                   #
-# or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES #
-# OR CONDITIONS OF ANY KIND, express o#implied. See the License for the specific language governing permissions     #
-# and limitations under the License.  																				#                                                                              #
-######################################################################################################################
+# // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: License :: OSI Approved :: MIT No Attribution License (MIT-0)
 
-from aws_cdk import (
-    core,
-    aws_eks as eks,
-    aws_ec2 as ec2
-)
+from constructs import Construct
+from aws_cdk import (aws_eks as eks, aws_ec2 as ec2)
 from aws_cdk.aws_iam import IRole
 
-class EksConst(core.Construct):
+class EksConst(Construct):
 
     @property
     def my_cluster(self):
@@ -28,7 +15,7 @@ class EksConst(core.Construct):
     def awsAuth(self):
         return self._my_cluster.aws_auth       
 
-    def __init__(self, scope: core.Construct, id:str, 
+    def __init__(self, scope: Construct, id:str, 
         eksname: str, 
         eksvpc: ec2.IVpc, 
         noderole: IRole, 
@@ -60,7 +47,7 @@ class EksConst(core.Construct):
             disk_size = 50,
             instance_types = [ec2.InstanceType('m5.xlarge')],
             labels = {'app':'spark', 'lifecycle':'OnDemand'},
-            subnets = ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE,one_per_az=True),
+            subnets = ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_NAT,one_per_az=True),
             tags = {'Name':'OnDemand-'+eksname,'k8s.io/cluster-autoscaler/enabled': 'true', 'k8s.io/cluster-autoscaler/'+eksname: 'owned'}
         )  
     

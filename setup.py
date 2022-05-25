@@ -1,16 +1,5 @@
-######################################################################################################################
-# Copyright 2020-2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                      #
-#                                                                                                                   #
-# Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance    #
-# with the License. A copy of the License is located at                                                             #
-#                                                                                                                   #
-#     http://www.apache.org/licenses/LICENSE-2.0                                                                    #
-#                                                                                                                   #
-# or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES #
-# OR CONDITIONS OF ANY KIND, express o#implied. See the License for the specific language governing permissions     #
-# and limitations under the License.  																				#                                                                              #
-######################################################################################################################
-
+# // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // License :: OSI Approved :: MIT No Attribution License (MIT-0)
 import setuptools
 
 try:
@@ -33,17 +22,9 @@ setuptools.setup(
     packages=setuptools.find_packages(where="source"),
 
     install_requires=[
-        "aws-cdk.core==1.122.0",
-        "aws-cdk.aws_iam==1.122.0",
-        "aws-cdk.aws_eks==1.122.0",
-        "aws-cdk.aws_ec2==1.122.0",
-        "aws-cdk.aws_s3==1.122.0",
-        "aws-cdk.aws_s3_deployment==1.122.0",
-        "aws_cdk.aws_elasticloadbalancingv2==1.122.0",
-        "aws-cdk.aws-emrcontainers==1.122.0",
-        "aws-cdk.aws-emr==1.122.0",
-        "aws-cdk.aws_msk==1.122.0",
-        "aws-cdk.aws-cloud9==1.122.0",
+        "aws-cdk-lib==2.12.0",
+        "aws-cdk.aws-msk-alpha==2.12.0a0",
+        "constructs>=10.0.0,<11.0.0",
         "pyyaml==5.4"
     ],
 

@@ -1,24 +1,11 @@
-######################################################################################################################
-# Copyright 2020-2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                      #
-#                                                                                                                   #
-# Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance    #
-# with the License. A copy of the License is located at                                                             #
-#                                                                                                                   #
-#     http://www.apache.org/licenses/LICENSE-2.0                                                                    #
-#                                                                                                                   #
-# or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES #
-# OR CONDITIONS OF ANY KIND, express o#implied. See the License for the specific language governing permissions     #
-# and limitations under the License.  																				#                                                                              #
-######################################################################################################################
+# // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# // SPDX-License-Identifier: License :: OSI Approved :: MIT No Attribution License (MIT-0)
 
-import typing
+from constructs import Construct
+from aws_cdk import (RemovalPolicy, Tags, Aws, aws_iam as iam)
+# import typing
 
-from aws_cdk import (
-    core,
-    aws_iam as iam
-)
-
-class IamConst(core.Construct):
+class IamConst(Construct):
 
     @property
     def managed_node_role(self):
@@ -36,7 +23,7 @@ class IamConst(core.Construct):
     def emr_svc_role(self):
         return self._emrsvcrole 
 
-    def __init__(self,scope: core.Construct, id:str, cluster_name:str, **kwargs,) -> None:
+    def __init__(self,scope: Construct, id:str, cluster_name:str, **kwargs,) -> None:
         super().__init__(scope, id, **kwargs)
 
         # EKS admin role
@@ -53,7 +40,7 @@ class IamConst(core.Construct):
                 "iam:ListRoles"
             ],
         ))
-        core.Tags.of(self._clusterAdminRole).add(
+        Tags.of(self._clusterAdminRole).add(
             key='eks/%s/type' % cluster_name, 
             value='admin-role'
         )
@@ -70,7 +57,7 @@ class IamConst(core.Construct):
             assumed_by=iam.ServicePrincipal('ec2.amazonaws.com'),
             managed_policies=list(_managed_node_managed_policies),
         )
-        self._managed_node_role.apply_removal_policy(core.RemovalPolicy.DESTROY)
+        self._managed_node_role.apply_removal_policy(RemovalPolicy.DESTROY)
 
         # Fargate pod execution role
         self._fg_pod_role = iam.Role(self, "FargatePodExecRole",
@@ -81,7 +68,7 @@ class IamConst(core.Construct):
 
         # EMR container service role
         self._emrsvcrole = iam.Role.from_role_arn(self, "EmrSvcRole", 
-            role_arn=f"arn:aws:iam::{core.Aws.ACCOUNT_ID}:role/AWSServiceRoleForAmazonEMRContainers", 
+            role_arn=f"arn:aws:iam::{Aws.ACCOUNT_ID}:role/AWSServiceRoleForAmazonEMRContainers", 
             mutable=False
         )
 
@@ -110,19 +97,19 @@ class IamConst(core.Construct):
                 ]
         ))
         self._cloud9_role.add_to_policy(iam.PolicyStatement(
-            resources=[f"arn:aws:kafka:{core.Aws.REGION}:{core.Aws.ACCOUNT_ID}:/v1/clusters"],
+            resources=[f"arn:aws:kafka:{Aws.REGION}:{Aws.ACCOUNT_ID}:/v1/clusters"],
             actions=["kafka:ListClusters"]
         ))
         self._cloud9_role.add_to_policy(iam.PolicyStatement(
-            resources=[f"arn:aws:kafka:{core.Aws.REGION}:{core.Aws.ACCOUNT_ID}:/v1/configurations"],
+            resources=[f"arn:aws:kafka:{Aws.REGION}:{Aws.ACCOUNT_ID}:/v1/configurations"],
             actions=["kafka:CreateConfiguration","kafka:ListConfigurations"]
         ))
         self._cloud9_role.add_to_policy(iam.PolicyStatement(
-            resources=[f"arn:aws:emr-containers:{core.Aws.REGION}:{core.Aws.ACCOUNT_ID}:/virtualclusters/*"],
+            resources=[f"arn:aws:emr-containers:{Aws.REGION}:{Aws.ACCOUNT_ID}:/virtualclusters/*"],
             actions=["emr-containers:StartJobRun"]
         ))
         iam.CfnInstanceProfile(self,"Cloud9RoleProfile",
             roles=[ self._cloud9_role.role_name],
             instance_profile_name= self._cloud9_role.role_name
         )
-        self._cloud9_role.apply_removal_policy(core.RemovalPolicy.DESTROY)
+        self._cloud9_role.apply_removal_policy(RemovalPolicy.DESTROY)
