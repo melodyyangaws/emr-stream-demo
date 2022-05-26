@@ -101,6 +101,10 @@ Instance Type: 't3.small'
 
 3. Turn off AWS managed temporary credentials in Cloud9:
 ```bash
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+./aws/install -i /usr/local/aws-cli  -b /usr/local/bin --update
 aws cloud9 update-environment  --environment-id $C9_PID --managed-credentials-action DISABLE
 rm -vf ${HOME}/.aws/credentials
 ```
