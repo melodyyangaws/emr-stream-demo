@@ -24,14 +24,14 @@ The infrastructure deployment includes the following:
 ## Spark examples - read stream from MSK
 Spark consumer applications reading from Amazon MSK:
 
-* [1. Run a job with EMR on EKS](###1-submit-a-job-with-emr-on-eks) 
-* [2. Same job with Fargate on EMR on EKS](###2-EMR-on-EKS-with-Fargate) 
-* [3. Same job with EMR on EC2](###3-optional-Submit-step-to-EMR-on-EC2) 
+* [1. Run a job with EMR on EKS](#1-submit-a-job-with-emr-on-eks) 
+* [2. Same job with Fargate on EMR on EKS](#2-EMR-on-EKS-with-Fargate) 
+* [3. Same job with EMR on EC2](#3-optional-Submit-step-to-EMR-on-EC2) 
 
 ## Spark examples - read stream from Kinesis
-* [1. (Optional) Build a custom docker image](###1-optional-Build-custom-docker-image) 
-* [2. Run a job with kinesis-sql connector](###2-Use-kinesis-sql-connector) 
-* [3. Run a job with Spark's DStream](###3-use-spark-s-dstream) 
+* [1. (Optional) Build a custom docker image](#1-optional-Build-custom-docker-image) 
+* [2. Run a job with kinesis-sql connector](#2-Use-kinesis-sql-connector) 
+* [3. Run a job with Spark's DStream](#3-use-spark-s-dstream) 
 
 ## Deploy Infrastructure
 
