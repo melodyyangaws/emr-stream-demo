@@ -24,14 +24,14 @@ The infrastructure deployment includes the following:
 ## Spark examples - read stream from MSK
 Spark consumer applications reading from Amazon MSK:
 
-* [1. Run a job with EMR on EKS](###1-submit-a-job-with-emr-on-eks) 
-* [2. Same job with Fargate on EMR on EKS](###2-EMR-on-EKS-with-Fargate) 
-* [3. Same job with EMR on EC2](###3-optional-Submit-step-to-EMR-on-EC2) 
+* [1. Run a job with EMR on EKS](#1-submit-a-job-with-emr-on-eks) 
+* [2. Same job with Fargate on EMR on EKS](#2-EMR-on-EKS-with-Fargate) 
+* [3. Same job with EMR on EC2](#3-optional-Submit-step-to-EMR-on-EC2) 
 
 ## Spark examples - read stream from Kinesis
-* [1. (Optional) Build a custom docker image](###1-optional-Build-custom-docker-image) 
-* [2. Run a job with kinesis-sql connector](###2-Use-kinesis-sql-connector) 
-* [3. Run a job with Spark's DStream](###3-use-spark-s-dstream) 
+* [1. (Optional) Build a custom docker image](#1-optional-Build-custom-docker-image) 
+* [2. Run a job with kinesis-sql connector](#2-Use-kinesis-sql-connector) 
+* [3. Run a job with Spark's DStream](#3-use-spark-s-dstream) 
 
 ## Deploy Infrastructure
 
@@ -109,10 +109,10 @@ rm -vf ${HOME}/.aws/credentials
 ```bash
 curl https://raw.githubusercontent.com/melodyyangaws/emr-stream-demo/master/deployment/app_code/post-deployment.sh | bash
 ```
-5. Wait for 5 mins, then check the [MSK cluster](https://us-west-2.console.aws.amazon.com/msk/) status. Make sure it is `active` before sending data to the cluster.
+5. Wait for 5 mins, then check the [MSK cluster](https://https://console.aws.amazon.com/msk/) status. Make sure it is `active` before sending data to the cluster.
 6. Launching a new termnial window in Cloud9, send the sample data to MSK:
 ```bash
-curl -s https://raw.githubusercontent.com/melodyyangaws/emr-stream-demo/master/deployment/app_code/data/nycTaxiRides.gz | zcat | split -l 10000 --filter="kafka_2.12-2.2.1/bin/kafka-console-producer.sh --broker-list ${MSK_SERVER} --topic taxirides ; sleep 0.2"  > /dev/null
+curl -s https://github.com/xuite627/workshop_flink1015-1/raw/master/dataset/nycTaxiRides.gz | zcat | split -l 10000 --filter="kafka_2.12-2.2.1/bin/kafka-console-producer.sh --broker-list ${MSK_SERVER} --topic taxirides ; sleep 0.2"  > /dev/null
 ```
 6. Launching the 3rd termnial window and monitor the source MSK topic:
 ```bash
@@ -282,7 +282,7 @@ aws emr-containers start-job-run \
         "s3MonitoringConfiguration": {"logUri": "s3://'${S3BUCKET}'/elasticmapreduce/kinesis-fargate-log/"}
     }
 }'
-````
+```
 
 ### 3. Use Spark's DStream
 

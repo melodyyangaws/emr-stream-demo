@@ -1,5 +1,5 @@
 # // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# // License :: OSI Approved :: MIT No Attribution License (MIT-0)
+# // SPDX-License-Identifier: License :: OSI Approved :: MIT No Attribution License (MIT-0)
 import setuptools
 
 try:
@@ -10,7 +10,7 @@ except IOError as e:
 
 setuptools.setup(
     name="emr-stream-demo",
-    version="1.0.0",
+    version="2.0.0",
 
     description="A CDK Python app for Spark Structured Streaming ETL",
     long_description=long_description,

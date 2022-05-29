@@ -5,7 +5,7 @@ export stack_name="${1:-StreamOnEKS}"
 # 0. Setup AWS environment
 echo "Setup AWS environment ..."
 sudo yum -y install jq
-export AWS_REGION=$(aws configure list | grep region | awk '{print $2}')
+export AWS_REGION=$(curl http://169.254.169.254/latest/meta-data/placement/region)
 export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
 
 echo "export AWS_REGION=${AWS_REGION}" | tee -a ~/.bash_profile
@@ -25,16 +25,14 @@ echo "export VIRTUAL_CLUSTER_ID=${VIRTUAL_CLUSTER_ID}" | tee -a ~/.bash_profile
 # echo "export SERVERLESS_VIRTUAL_CLUSTER_ID=${SERVERLESS_VIRTUAL_CLUSTER_ID}" | tee -a ~/.bash_profile
 echo "export EMR_ROLE_ARN=${EMR_ROLE_ARN}" | tee -a ~/.bash_profile
 
-
-
-# 1. install k8s command tools 
+# 1. install k8s command tools
 echo "Installing kubectl tool..."
 curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl
 chmod +x kubectl
 mkdir -p $HOME/bin && mv kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
 
 # 2. Update MSK with custom configuration
-cat <<EoF > msk-config.txt
+cat <<EoF >msk-config.txt
 auto.create.topics.enable=true
 log.retention.minutes=1440
 zookeeper.connection.timeout.ms=1000
@@ -42,8 +40,7 @@ log.roll.ms=60480000
 EoF
 
 validate=$(aws kafka list-configurations --query 'Configurations[?Name==`autotopic`].Arn' --output text)
-if [ -z "$validate" ]
-then
+if [ -z "$validate" ]; then
     echo "Update MSK configuration ..."
 
     configArn=$(aws kafka create-configuration --name "autotopic" --description "Topic autocreation enabled; Log retention 24h; Apache ZooKeeper timeout 1000 ms; Log rolling 16h." --server-properties file://msk-config.txt | jq -r '.Arn')
@@ -59,7 +56,6 @@ tar -xzf kafka_2.12-2.2.1.tgz
 rm kafka_2.12-2.2.1.tgz
 
 # 4. connect to the EKS newly created
-echo `aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?starts_with(OutputKey,'eksclusterEKSConfig')].OutputValue" --output text` | bash
+echo $(aws cloudformation describe-stacks --stack-name $stack_name --query "Stacks[0].Outputs[?starts_with(OutputKey,'eksclusterEKSConfig')].OutputValue" --output text) | bash
 echo "Testing EKS connection..."
 kubectl get svc
-
