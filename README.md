@@ -112,7 +112,7 @@ rm -vf ${HOME}/.aws/credentials
 ```bash
 curl https://raw.githubusercontent.com/melodyyangaws/emr-stream-demo/master/deployment/app_code/post-deployment.sh | bash
 ```
-5. Wait for 5 mins, then check the [MSK cluster](https://https://console.aws.amazon.com/msk/) status. Make sure it is `active` before sending data to the cluster.
+5. Wait for 5 mins, then check the [MSK cluster](https://console.aws.amazon.com/msk/) status. Make sure it is `active` before sending data to the cluster.
 6. Launching a new termnial window in Cloud9, send the sample data to MSK:
 ```bash
 curl -s https://github.com/xuite627/workshop_flink1015-1/raw/master/dataset/nycTaxiRides.gz | zcat | split -l 10000 --filter="kafka_2.12-2.2.1/bin/kafka-console-producer.sh --broker-list ${MSK_SERVER} --topic taxirides ; sleep 0.2"  > /dev/null
